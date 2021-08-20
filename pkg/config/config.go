@@ -43,3 +43,17 @@ type BtrfsOptionsConfig struct {
 	Size string `toml:"size"`
 }
 
+type VfsOptionsConfig struct {
+	// IgnoreChownErrors is a flag for whether chown errors should be
+	// ignored when building an image.
+	IgnoreChownErrors string `toml:"ignore_chown_errors"`
+}
+
+type ZfsOptionsConfig struct {
+	// MountOpt specifies extra mount options used when mounting
+	MountOpt string `toml:"mountopt"`
+	// Name is the File System name of the ZFS File system
+	Name string `toml:"fsname"`
+	// Size
+	Size string `toml:"size"`
+}
