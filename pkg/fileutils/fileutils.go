@@ -40,6 +40,7 @@ func NewPatternMatcher(patterns []string) (*PatternMatcher, error) {
 			if len(p) == 1 {
 				return nil, errors.New("illegal exclusion pattern: \"!\"")
 			}
+
 			newp.exclusion = true
 			p = strings.TrimPrefix(filepath.Clean(p[1:]), "/")
 			pm.exclusions = true
@@ -55,4 +56,32 @@ func NewPatternMatcher(patterns []string) (*PatternMatcher, error) {
 	}
 
 	return pm, nil
+}
+
+func (pm *PatternMatcher) Matches(file string) (bool, error) {
+	matched := false
+	file = filepath.FromSlash(file)
+
+	for _, pattern := range pm.patterns {
+		negative := false
+
+		if pattern.exclusion {
+			negative = true
+		}
+
+		match, err := pattern.match(file)
+		if err != nil {
+			return false, err
+		}
+
+		if match {
+			matched = !negative
+		}
+	}
+
+	if matched {
+		logrus.Debugf("Skipping excluded path: %s", file)
+	}
+
+	return matched, nil
 }
