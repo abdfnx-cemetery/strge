@@ -141,3 +141,54 @@ func (pm *PatternMatcher) MatchesResult(file string) (res *MatchResult, err erro
 
 	return res, nil
 }
+
+// IsMatch verifies the provided filepath against all patterns and returns true
+// if it matches. A match is valid if the last match is a positive one.
+// It returns an error on failure and is not safe to be called concurrently.
+func (pm *PatternMatcher) IsMatch(file string) (matched bool, err error) {
+	res, err := pm.MatchesResult(file)
+	if err != nil {
+		return false, err
+	}
+
+	return res.isMatched, nil
+}
+
+// Exclusions returns true if any of the patterns define exclusions
+func (pm *PatternMatcher) Exclusions() bool {
+	return pm.exclusions
+}
+
+// Patterns returns array of active patterns
+func (pm *PatternMatcher) Patterns() []*Pattern {
+	return pm.patterns
+}
+
+// Pattern defines a single regexp used used to filter file paths.
+type Pattern struct {
+	cleanedPattern string
+	dirs           []string
+	regexp         *regexp.Regexp
+	exclusion      bool
+}
+
+func (p *Pattern) String() string {
+	return p.cleanedPattern
+}
+
+// Exclusion returns true if this pattern defines exclusion
+func (p *Pattern) Exclusion() bool {
+	return p.exclusion
+}
+
+func (p *Pattern) match(path string) (bool, error) {
+	if p.regexp == nil {
+		if err := p.compile(); err != nil {
+			return false, filepath.ErrBadPattern
+		}
+	}
+
+	b := p.regexp.MatchString(path)
+
+	return b, nil
+}
