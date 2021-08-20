@@ -30,3 +30,16 @@ type ThinpoolOptionsConfig struct {
 	UseDeferredRemoval string `toml:"use_deferred_removal"`
 	XfsNoSpaceMaxRetries string `toml:"xfs_nospace_max_retries"`
 }
+
+type AufsOptionsConfig struct {
+	// MountOpt specifies extra mount options used when mounting
+	MountOpt string `toml:"mountopt"`
+}
+
+type BtrfsOptionsConfig struct {
+	// MinSpace is the minimal spaces allocated to the device
+	MinSpace string `toml:"min_space"`
+	// Size
+	Size string `toml:"size"`
+}
+
