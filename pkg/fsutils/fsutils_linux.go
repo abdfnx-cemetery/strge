@@ -65,3 +65,36 @@ func SupportsDType(path string) (bool, error) {
 
 	return supportsDType, nil
 }
+
+func iterateReadDir(path string, fn func(*unix.Dirent) bool) error {
+	d, err := os.Open(path)
+
+	if err != nil {
+		return err
+	}
+
+	defer d.Close()
+	fd := int(d.Fd())
+	buf := make([]byte, 4096)
+
+	for {
+		nbytes, err := unix.ReadDirent(fd, buf)
+		if err != nil {
+			return err
+		}
+
+		if nbytes == 0 {
+			break
+		}
+
+		for off := 0; off < nbytes; {
+			ent := (*unix.Dirent)(unsafe.Pointer(&buf[off]))
+			if stop := fn(ent); stop {
+				return nil
+			}
+			off += int(ent.Reclen)
+		}
+	}
+
+	return nil
+}
