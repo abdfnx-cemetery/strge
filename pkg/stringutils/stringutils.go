@@ -79,3 +79,39 @@ func RemoveFromSlice(slice []string, s string) (ret []string) {
 
 	return ret
 }
+
+func quote(word string, buf *bytes.Buffer) {
+	// Bail out early for "simple" strings
+	if word != "" && !strings.ContainsAny(word, "\\'\"`${[|&;<>()~*?! \t\n") {
+		buf.WriteString(word)
+		return
+	}
+
+	buf.WriteString("'")
+
+	for i := 0; i < len(word); i++ {
+		b := word[i]
+		if b == '\'' {
+			// Replace literal ' with a close ', a \', and an open '
+			buf.WriteString("'\\''")
+		} else {
+			buf.WriteByte(b)
+		}
+	}
+
+	buf.WriteString("'")
+}
+
+// ShellQuoteArguments takes a list of strings and escapes them so they will be
+// handled right when passed as arguments to a program via a shell
+func ShellQuoteArguments(args []string) string {
+	var buf bytes.Buffer
+	for i, arg := range args {
+		if i != 0 {
+			buf.WriteByte(' ')
+		}
+		quote(arg, &buf)
+	}
+
+	return buf.String()
+}
