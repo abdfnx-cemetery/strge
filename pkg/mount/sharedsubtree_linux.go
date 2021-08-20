@@ -47,3 +47,18 @@ func MakeUnbindable(mountPoint string) error {
 func MakeRUnbindable(mountPoint string) error {
 	return ensureMountedAs(mountPoint, RUNBINDABLE)
 }
+
+func ensureMountedAs(mnt string, flags int) error {
+	mounted, err := Mounted(mnt)
+	if err != nil {
+		return err
+	}
+
+	if !mounted {
+		if err := mount(mnt, mnt, "none", uintptr(BIND), ""); err != nil {
+			return err
+		}
+	}
+
+	return mount("", mnt, "none", uintptr(flags), "")
+}
