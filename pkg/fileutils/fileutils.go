@@ -85,3 +85,8 @@ func (pm *PatternMatcher) Matches(file string) (bool, error) {
 
 	return matched, nil
 }
+
+type MatchResult struct {
+	isMatched         bool
+	matches, excludes uint
+}
