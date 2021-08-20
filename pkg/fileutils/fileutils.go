@@ -90,3 +90,18 @@ type MatchResult struct {
 	isMatched         bool
 	matches, excludes uint
 }
+
+// Excludes returns true if the overall result is matched
+func (m *MatchResult) IsMatched() bool {
+	return m.isMatched
+}
+
+// Excludes returns the amount of matches of an MatchResult
+func (m *MatchResult) Matches() uint {
+	return m.matches
+}
+
+// Excludes returns the amount of excludes of an MatchResult
+func (m *MatchResult) Excludes() uint {
+	return m.excludes
+}
