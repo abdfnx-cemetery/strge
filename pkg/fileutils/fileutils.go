@@ -105,3 +105,39 @@ func (m *MatchResult) Matches() uint {
 func (m *MatchResult) Excludes() uint {
 	return m.excludes
 }
+
+// MatchesResult verifies the provided filepath against all patterns.
+// It returns the `*MatchResult` result for the patterns on success, otherwise
+// an error. This method is not safe to be called concurrently.
+func (pm *PatternMatcher) MatchesResult(file string) (res *MatchResult, err error) {
+	file = filepath.FromSlash(file)
+	res = &MatchResult{false, 0, 0}
+
+	for _, pattern := range pm.patterns {
+		negative := false
+
+		if pattern.exclusion {
+			negative = true
+		}
+
+		match, err := pattern.match(file)
+		if err != nil {
+			return nil, err
+		}
+
+		if match {
+			res.isMatched = !negative
+			if negative {
+				res.excludes++
+			} else {
+				res.matches++
+			}
+		}
+	}
+
+	if res.matches > 0 {
+		logrus.Debugf("Skipping excluded path: %s", file)
+	}
+
+	return res, nil
+}
