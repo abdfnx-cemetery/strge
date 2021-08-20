@@ -192,3 +192,152 @@ func (p *Pattern) match(path string) (bool, error) {
 
 	return b, nil
 }
+
+func (p *Pattern) compile() error {
+	regStr := "^"
+	pattern := p.cleanedPattern
+	// Go through the pattern and convert it to a regexp.
+	// We use a scanner so we can support utf-8 chars.
+	var scan scanner.Scanner
+	scan.Init(strings.NewReader(pattern))
+
+	sl := string(os.PathSeparator)
+	escSL := sl
+	const bs = `\`
+	if sl == bs {
+		escSL += bs
+	}
+
+	for scan.Peek() != scanner.EOF {
+		ch := scan.Next()
+
+		if ch == '*' {
+			if scan.Peek() == '*' {
+				// is some flavor of "**"
+				scan.Next()
+
+				// Treat **/ as ** so eat the "/"
+				if string(scan.Peek()) == sl {
+					scan.Next()
+				}
+
+				if scan.Peek() == scanner.EOF {
+					// is "**EOF" - to align with .gitignore just accept all
+					regStr += ".*"
+				} else {
+					// is "**"
+					// Note that this allows for any # of /'s (even 0) because
+					// the .* will eat everything, even /'s
+					regStr += "(.*" + escSL + ")?"
+				}
+			} else {
+				// is "*" so map it to anything but "/"
+				regStr += "[^" + escSL + "]*"
+			}
+		} else if ch == '?' {
+			// "?" is any char except "/"
+			regStr += "[^" + escSL + "]"
+		} else if ch == '.' || ch == '$' {
+			// Escape some regexp special chars that have no meaning
+			// in golang's filepath.Match
+			regStr += bs + string(ch)
+		} else if ch == '\\' {
+			// escape next char.
+			if sl == bs {
+				// On windows map "\" to "\\", meaning an escaped backslash,
+				// and then just continue because filepath.Match on
+				// Windows doesn't allow escaping at all
+				regStr += escSL
+				continue
+			}
+
+			if scan.Peek() != scanner.EOF {
+				regStr += bs + string(scan.Next())
+			} else {
+				return filepath.ErrBadPattern
+			}
+		} else {
+			regStr += string(ch)
+		}
+	}
+
+	regStr += "(" + escSL + ".*)?$"
+
+	re, err := regexp.Compile(regStr)
+	if err != nil {
+		return err
+	}
+
+	p.regexp = re
+	return nil
+}
+
+// Matches returns true if file matches any of the patterns
+// and isn't excluded by any of the subsequent patterns.
+func Matches(file string, patterns []string) (bool, error) {
+	pm, err := NewPatternMatcher(patterns)
+	if err != nil {
+		return false, err
+	}
+
+	file = filepath.Clean(file)
+
+	if file == "." {
+		// Don't let them exclude everything, kind of silly.
+		return false, nil
+	}
+
+	return pm.IsMatch(file)
+}
+
+// CopyFile copies from src to dst until either EOF is reached
+// on src or an error occurs. It verifies src exists and removes
+// the dst if it exists.
+func CopyFile(src, dst string) (int64, error) {
+	cleanSrc := filepath.Clean(src)
+	cleanDst := filepath.Clean(dst)
+	if cleanSrc == cleanDst {
+		return 0, nil
+	}
+
+	sf, err := os.Open(cleanSrc)
+	if err != nil {
+		return 0, err
+	}
+
+	defer sf.Close()
+	if err := os.Remove(cleanDst); err != nil && !os.IsNotExist(err) {
+		return 0, err
+	}
+
+	df, err := os.Create(cleanDst)
+	if err != nil {
+		return 0, err
+	}
+
+	defer df.Close()
+	return io.Copy(df, sf)
+}
+
+func ReadSymlinkedDirectory(path string) (string, error) {
+	var realPath string
+	var err error
+	if realPath, err = filepath.Abs(path); err != nil {
+		return "", fmt.Errorf("unable to get absolute path for %s: %s", path, err)
+	}
+
+	if realPath, err = filepath.EvalSymlinks(realPath); err != nil {
+		return "", fmt.Errorf("failed to canonicalise path for %s: %s", path, err)
+	}
+
+	realPathInfo, err := os.Stat(realPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to stat target '%s' of '%s': %s", realPath, path, err)
+	}
+
+	if !realPathInfo.Mode().IsDir() {
+		return "", fmt.Errorf("canonical path points to a file '%s'", realPath)
+	}
+
+	return realPath, nil
+}
