@@ -30,3 +30,38 @@ func locateDummyIfEmpty(path string) (string, error) {
 	err = dummyFile.Close()
 	return name, err
 }
+
+// SupportsDType returns whether the filesystem mounted on path supports d_type
+func SupportsDType(path string) (bool, error) {
+	// locate dummy so that we have at least one dirent
+	dummy, err := locateDummyIfEmpty(path)
+	if err != nil {
+		return false, err
+	}
+	if dummy != "" {
+		defer os.Remove(dummy)
+	}
+
+	visited := 0
+	supportsDType := true
+	fn := func(ent *unix.Dirent) bool {
+		visited++
+		if ent.Type == unix.DT_UNKNOWN {
+			supportsDType = false
+			// stop iteration
+			return true
+		}
+		// continue iteration
+		return false
+	}
+
+	if err = iterateReadDir(path, fn); err != nil {
+		return false, err
+	}
+
+	if visited == 0 {
+		return false, fmt.Errorf("did not hit any dirent during iteration %s", path)
+	}
+
+	return supportsDType, nil
+}
