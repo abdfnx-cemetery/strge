@@ -107,3 +107,160 @@ type OptionsConfig struct {
 	PullOptions map[string]string `toml:"pull_options"`
 	DisableVolatile bool `toml:"disable-volatile"`
 }
+
+func GetGraphDriverOptions(driverName string, options OptionsConfig) []string {
+	var doptions []string
+
+	switch driverName {
+		case "aufs":
+			if options.Aufs.MountOpt != "" {
+				return append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.Aufs.MountOpt))
+			} else if options.MountOpt != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.MountOpt))
+			}
+
+		case "btrfs":
+			if options.Btrfs.MinSpace != "" {
+				return append(doptions, fmt.Sprintf("%s.min_space=%s", driverName, options.Btrfs.MinSpace))
+			}
+
+			if options.Btrfs.Size != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Btrfs.Size))
+			} else if options.Size != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Size))
+			}
+
+		case "devicemapper":
+			if options.Thinpool.AutoExtendPercent != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.thinp_autoextend_percent=%s", options.Thinpool.AutoExtendPercent))
+			}
+
+			if options.Thinpool.AutoExtendThreshold != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.thinp_autoextend_threshold=%s", options.Thinpool.AutoExtendThreshold))
+			}
+
+			if options.Thinpool.BaseSize != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.basesize=%s", options.Thinpool.BaseSize))
+			}
+
+			if options.Thinpool.BlockSize != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.blocksize=%s", options.Thinpool.BlockSize))
+			}
+
+			if options.Thinpool.DirectLvmDevice != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.directlvm_device=%s", options.Thinpool.DirectLvmDevice))
+			}
+
+			if options.Thinpool.DirectLvmDeviceForce != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.directlvm_device_force=%s", options.Thinpool.DirectLvmDeviceForce))
+			}
+
+			if options.Thinpool.Fs != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.fs=%s", options.Thinpool.Fs))
+			}
+
+			if options.Thinpool.LogLevel != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.libdm_log_level=%s", options.Thinpool.LogLevel))
+			}
+
+			if options.Thinpool.MetadataSize != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.metadata_size=%s", options.Thinpool.MetadataSize))
+			}
+
+			if options.Thinpool.MinFreeSpace != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.min_free_space=%s", options.Thinpool.MinFreeSpace))
+			}
+
+			if options.Thinpool.MkfsArg != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.mkfsarg=%s", options.Thinpool.MkfsArg))
+			}
+
+			if options.Thinpool.MountOpt != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.Thinpool.MountOpt))
+			} else if options.MountOpt != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.MountOpt))
+			}
+
+			if options.Thinpool.Size != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Thinpool.Size))
+			} else if options.Size != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Size))
+			}
+
+			if options.Thinpool.UseDeferredDeletion != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.use_deferred_deletion=%s", options.Thinpool.UseDeferredDeletion))
+			}
+
+			if options.Thinpool.UseDeferredRemoval != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.use_deferred_removal=%s", options.Thinpool.UseDeferredRemoval))
+			}
+
+			if options.Thinpool.XfsNoSpaceMaxRetries != "" {
+				doptions = append(doptions, fmt.Sprintf("dm.xfs_nospace_max_retries=%s", options.Thinpool.XfsNoSpaceMaxRetries))
+			}
+
+		case "overlay", "overlay2":
+			if options.Overlay.IgnoreChownErrors != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.ignore_chown_errors=%s", driverName, options.Overlay.IgnoreChownErrors))
+			} else if options.IgnoreChownErrors != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.ignore_chown_errors=%s", driverName, options.IgnoreChownErrors))
+			}
+
+			if options.Overlay.MountProgram != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.mount_program=%s", driverName, options.Overlay.MountProgram))
+			} else if options.MountProgram != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.mount_program=%s", driverName, options.MountProgram))
+			}
+
+			if options.Overlay.MountOpt != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.Overlay.MountOpt))
+			} else if options.MountOpt != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.MountOpt))
+			}
+
+			if options.Overlay.Size != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Overlay.Size))
+			} else if options.Size != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Size))
+			}
+
+			if options.Overlay.SkipMountHome != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.skip_mount_home=%s", driverName, options.Overlay.SkipMountHome))
+			} else if options.SkipMountHome != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.skip_mount_home=%s", driverName, options.SkipMountHome))
+			}
+
+			if options.Overlay.ForceMask != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.force_mask=%s", driverName, options.Overlay.ForceMask))
+			} else if options.ForceMask != 0 {
+				doptions = append(doptions, fmt.Sprintf("%s.force_mask=%s", driverName, options.ForceMask))
+			}
+
+		case "vfs":
+			if options.Vfs.IgnoreChownErrors != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.ignore_chown_errors=%s", driverName, options.Vfs.IgnoreChownErrors))
+			} else if options.IgnoreChownErrors != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.ignore_chown_errors=%s", driverName, options.IgnoreChownErrors))
+			}
+
+		case "zfs":
+			if options.Zfs.Name != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.fsname=%s", driverName, options.Zfs.Name))
+			}
+
+			if options.Zfs.MountOpt != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.Zfs.MountOpt))
+			} else if options.MountOpt != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.MountOpt))
+			}
+
+			if options.Zfs.Size != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Zfs.Size))
+			} else if options.Size != "" {
+				doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Size))
+			}
+	}
+
+	return doptions
+}
+
