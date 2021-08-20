@@ -341,3 +341,43 @@ func ReadSymlinkedDirectory(path string) (string, error) {
 
 	return realPath, nil
 }
+
+func ReadSymlinkedPath(path string) (realPath string, err error) {
+	if realPath, err = filepath.Abs(path); err != nil {
+		return "", errors.Wrapf(err, "unable to get absolute path for %q", path)
+	}
+
+	if realPath, err = filepath.EvalSymlinks(realPath); err != nil {
+		return "", errors.Wrapf(err, "failed to canonicalise path for %q", path)
+	}
+
+	if _, err := os.Stat(realPath); err != nil {
+		return "", errors.Wrapf(err, "failed to stat target %q of %q", realPath, path)
+	}
+
+	return realPath, nil
+}
+
+// CreateIfNotExists creates a file or a directory only if it does not already exist.
+func CreateIfNotExists(path string, isDir bool) error {
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			if isDir {
+				return os.MkdirAll(path, 0755)
+			}
+
+			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+				return err
+			}
+
+			f, err := os.OpenFile(path, os.O_CREATE, 0755)
+			if err != nil {
+				return err
+			}
+
+			f.Close()
+		}
+	}
+
+	return nil
+}
