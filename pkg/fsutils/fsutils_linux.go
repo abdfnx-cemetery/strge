@@ -38,6 +38,7 @@ func SupportsDType(path string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	if dummy != "" {
 		defer os.Remove(dummy)
 	}
