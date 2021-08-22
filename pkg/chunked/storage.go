@@ -19,3 +19,7 @@ type ImageSourceSeekable interface {
 
 // ErrBadRequest is returned when the request is not valid
 type ErrBadRequest struct {}
+
+func (e ErrBadRequest) Error() string {
+	return fmt.Sprintf("bad request")
+}
