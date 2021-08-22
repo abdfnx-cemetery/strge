@@ -73,3 +73,36 @@ type containerStore struct {
 	byname     map[string]*Container
 	loadMut    sync.Mutex
 }
+
+func copyContainer(c *Container) *Container {
+	return &Container{
+		ID:             c.ID,
+		Names:          copyStringSlice(c.Names),
+		ImageID:        c.ImageID,
+		LayerID:        c.LayerID,
+		Metadata:       c.Metadata,
+		BigDataNames:   copyStringSlice(c.BigDataNames),
+		BigDataSizes:   copyStringInt64Map(c.BigDataSizes),
+		BigDataDigests: copyStringDigestMap(c.BigDataDigests),
+		Created:        c.Created,
+		UIDMap:         copyIDMap(c.UIDMap),
+		GIDMap:         copyIDMap(c.GIDMap),
+		Flags:          copyStringInterfaceMap(c.Flags),
+	}
+}
+
+func (c *Container) MountLabel() string {
+	if label, ok := c.Flags["MountLabel"].(string); ok {
+		return label
+	}
+
+	return ""
+}
+
+func (c *Container) ProcessLabel() string {
+	if label, ok := c.Flags["ProcessLabel"].(string); ok {
+		return label
+	}
+
+	return ""
+}
