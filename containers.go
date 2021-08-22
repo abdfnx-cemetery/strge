@@ -62,3 +62,14 @@ type ContainerStore interface {
 	// Containers returns a slice enumerating the known containers.
 	Containers() ([]Container, error)
 }
+
+type containerStore struct {
+	lockfile   Locker
+	dir        string
+	containers []*Container
+	idindex    *truncindex.TruncIndex
+	byid       map[string]*Container
+	bylayer    map[string]*Container
+	byname     map[string]*Container
+	loadMut    sync.Mutex
+}
