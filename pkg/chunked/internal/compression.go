@@ -41,3 +41,20 @@ type ZstdFileMetadata struct {
 	ChunkOffset int64  `json:"chunkOffset,omitempty"`
 	ChunkDigest string `json:"chunkDigest,omitempty"`
 }
+
+func typeToTarType(t string) (byte, error) {
+	r, found := typesToTar[t]
+	if !found {
+		return 0, fmt.Errorf("unknown type: %v", t)
+	}
+
+	return r, nil
+}
+
+func isZstdChunkedFrameMagic(data []byte) bool {
+	if len(data) < 8 {
+		return false
+	}
+
+	return bytes.Equal(internal.ZstdChunkedFrameMagic, data[:8])
+}
