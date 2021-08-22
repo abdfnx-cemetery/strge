@@ -106,3 +106,26 @@ func (c *Container) ProcessLabel() string {
 
 	return ""
 }
+
+func (c *Container) MountOpts() []string {
+	switch c.Flags["MountOpts"].(type) {
+		case []string:
+			return c.Flags["MountOpts"].([]string)
+		case []interface{}:
+			var mountOpts []string
+			for _, v := range c.Flags["MountOpts"].([]interface{}) {
+				if flag, ok := v.(string); ok {
+					mountOpts = append(mountOpts, flag)
+				}
+			}
+			return mountOpts
+		default:
+			return nil
+	}
+}
+
+func (r *containerStore) Containers() ([]Container, error) {
+	containers := make([]Container, len(r.containers))
+	
+	return containers, nil
+}
