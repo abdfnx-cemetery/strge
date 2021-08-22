@@ -190,3 +190,468 @@ func (r *containerStore) Load() error {
 
 	return nil
 }
+
+func (r *containerStore) Save() error {
+	if !r.Locked() {
+		return errors.New("container store is not locked")
+	}
+
+	rpath := r.containerspath()
+	if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
+		return err
+	}
+
+	jdata, err := json.Marshal(&r.containers)
+	if err != nil {
+		return err
+	}
+
+	defer r.Touch()
+	return ioutils.AtomicWriteFile(rpath, jdata, 0600)
+}
+
+func newContainerStore(dir string) (ContainerStore, error) {
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return nil, err
+	}
+
+	lockfile, err := GetLockfile(filepath.Join(dir, "containers.lock"))
+	if err != nil {
+		return nil, err
+	}
+
+	lockfile.Lock()
+	defer lockfile.Unlock()
+	cstore := containerStore{
+		lockfile:   lockfile,
+		dir:        dir,
+		containers: []*Container{},
+		byid:       make(map[string]*Container),
+		bylayer:    make(map[string]*Container),
+		byname:     make(map[string]*Container),
+	}
+
+	if err := cstore.Load(); err != nil {
+		return nil, err
+	}
+
+	return &cstore, nil
+}
+
+func (r *containerStore) lookup(id string) (*Container, bool) {
+	if container, ok := r.byid[id]; ok {
+		return container, ok
+	} else if container, ok := r.byname[id]; ok {
+		return container, ok
+	} else if container, ok := r.bylayer[id]; ok {
+		return container, ok
+	} else if longid, err := r.idindex.Get(id); err == nil {
+		if container, ok := r.byid[longid]; ok {
+			return container, ok
+		}
+	}
+
+	return nil, false
+}
+
+func (r *containerStore) ClearFlag(id string, flag string) error {
+	container, ok := r.lookup(id)
+	if !ok {
+		return ErrContainerUnknown
+	}
+
+	delete(container.Flags, flag)
+	return r.Save()
+}
+
+func (r *containerStore) SetFlag(id string, flag string, value interface{}) error {
+	container, ok := r.lookup(id)
+	if !ok {
+		return ErrContainerUnknown
+	}
+
+	if container.Flags == nil {
+		container.Flags = make(map[string]interface{})
+	}
+
+	container.Flags[flag] = value
+	return r.Save()
+}
+
+func (r *containerStore) Create(id string, names []string, image, layer, metadata string, options *ContainerOptions) (container *Container, err error) {
+	if id == "" {
+		id = stringid.GenerateRandomID()
+		_, idInUse := r.byid[id]
+		for idInUse {
+			id = stringid.GenerateRandomID()
+			_, idInUse = r.byid[id]
+		}
+	}
+
+	if _, idInUse := r.byid[id]; idInUse {
+		return nil, ErrDuplicateID
+	}
+
+	if options.MountOpts != nil {
+		options.Flags["MountOpts"] = append([]string{}, options.MountOpts...)
+	}
+
+	if options.Volatile {
+		options.Flags["Volatile"] = true
+	}
+
+	names = dedupeNames(names)
+	for _, name := range names {
+		if _, nameInUse := r.byname[name]; nameInUse {
+			return nil, errors.Wrapf(ErrDuplicateName,
+				fmt.Sprintf("the container name \"%s\" is already in use by \"%s\". You have to remove that container to be able to reuse that name.", name, r.byname[name].ID))
+		}
+	}
+
+	if err == nil {
+		container = &Container{
+			ID:             id,
+			Names:          names,
+			ImageID:        image,
+			LayerID:        layer,
+			Metadata:       metadata,
+			BigDataNames:   []string{},
+			BigDataSizes:   make(map[string]int64),
+			BigDataDigests: make(map[string]digest.Digest),
+			Created:        time.Now().UTC(),
+			Flags:          copyStringInterfaceMap(options.Flags),
+			UIDMap:         copyIDMap(options.UIDMap),
+			GIDMap:         copyIDMap(options.GIDMap),
+		}
+
+		r.containers = append(r.containers, container)
+		r.byid[id] = container
+		r.idindex.Add(id)
+		r.bylayer[layer] = container
+		for _, name := range names {
+			r.byname[name] = container
+		}
+
+		err = r.Save()
+		container = copyContainer(container)
+	}
+
+	return container, err
+}
+
+func (r *containerStore) Metadata(id string) (string, error) {
+	if container, ok := r.lookup(id); ok {
+		return container.Metadata, nil
+	}
+
+	return "", ErrContainerUnknown
+}
+
+func (r *containerStore) SetMetadata(id, metadata string) error {
+	if container, ok := r.lookup(id); ok {
+		container.Metadata = metadata
+		return r.Save()
+	}
+
+	return ErrContainerUnknown
+}
+
+func (r *containerStore) removeName(container *Container, name string) {
+	container.Names = stringSliceWithoutValue(container.Names, name)
+}
+
+func (r *containerStore) SetNames(id string, names []string) error {
+	names = dedupeNames(names)
+	if container, ok := r.lookup(id); ok {
+		for _, name := range container.Names {
+			delete(r.byname, name)
+		}
+
+		for _, name := range names {
+			if otherContainer, ok := r.byname[name]; ok {
+				r.removeName(otherContainer, name)
+			}
+			r.byname[name] = container
+		}
+
+		container.Names = names
+		return r.Save()
+	}
+
+	return ErrContainerUnknown
+}
+
+func (r *containerStore) Delete(id string) error {
+	container, ok := r.lookup(id)
+	if !ok {
+		return ErrContainerUnknown
+	}
+
+	id = container.ID
+	toDeleteIndex := -1
+	for i, candidate := range r.containers {
+		if candidate.ID == id {
+			toDeleteIndex = i
+			break
+		}
+	}
+
+	delete(r.byid, id)
+	r.idindex.Delete(id)
+	delete(r.bylayer, container.LayerID)
+	for _, name := range container.Names {
+		delete(r.byname, name)
+	}
+
+	if toDeleteIndex != -1 {
+		// delete the container at toDeleteIndex
+		if toDeleteIndex == len(r.containers)-1 {
+			r.containers = r.containers[:len(r.containers)-1]
+		} else {
+			r.containers = append(r.containers[:toDeleteIndex], r.containers[toDeleteIndex+1:]...)
+		}
+	}
+
+	if err := r.Save(); err != nil {
+		return err
+	}
+
+	if err := os.RemoveAll(r.datadir(id)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *containerStore) Get(id string) (*Container, error) {
+	if container, ok := r.lookup(id); ok {
+		return copyContainer(container), nil
+	}
+
+	return nil, ErrContainerUnknown
+}
+
+func (r *containerStore) Lookup(name string) (id string, err error) {
+	if container, ok := r.lookup(name); ok {
+		return container.ID, nil
+	}
+
+	return "", ErrContainerUnknown
+}
+
+func (r *containerStore) Exists(id string) bool {
+	_, ok := r.lookup(id)
+	return ok
+}
+
+func (r *containerStore) BigData(id, key string) ([]byte, error) {
+	if key == "" {
+		return nil, errors.Wrapf(ErrInvalidBigDataName, "can't retrieve container big data value for empty name")
+	}
+
+	c, ok := r.lookup(id)
+	if !ok {
+		return nil, ErrContainerUnknown
+	}
+
+	return ioutil.ReadFile(r.datapath(c.ID, key))
+}
+
+func (r *containerStore) BigDataSize(id, key string) (int64, error) {
+	if key == "" {
+		return -1, errors.Wrapf(ErrInvalidBigDataName, "can't retrieve size of container big data with empty name")
+	}
+
+	c, ok := r.lookup(id)
+	if !ok {
+		return -1, ErrContainerUnknown
+	}
+
+	if c.BigDataSizes == nil {
+		c.BigDataSizes = make(map[string]int64)
+	}
+
+	if size, ok := c.BigDataSizes[key]; ok {
+		return size, nil
+	}
+
+	if data, err := r.BigData(id, key); err == nil && data != nil {
+		if err = r.SetBigData(id, key, data); err == nil {
+			c, ok := r.lookup(id)
+			if !ok {
+				return -1, ErrContainerUnknown
+			}
+
+			if size, ok := c.BigDataSizes[key]; ok {
+				return size, nil
+			}
+		} else {
+			return -1, err
+		}
+	}
+
+	return -1, ErrSizeUnknown
+}
+
+func (r *containerStore) BigDataDigest(id, key string) (digest.Digest, error) {
+	if key == "" {
+		return "", errors.Wrapf(ErrInvalidBigDataName, "can't retrieve digest of container big data value with empty name")
+	}
+
+	c, ok := r.lookup(id)
+	if !ok {
+		return "", ErrContainerUnknown
+	}
+
+	if c.BigDataDigests == nil {
+		c.BigDataDigests = make(map[string]digest.Digest)
+	}
+
+	if d, ok := c.BigDataDigests[key]; ok {
+		return d, nil
+	}
+
+	if data, err := r.BigData(id, key); err == nil && data != nil {
+		if err = r.SetBigData(id, key, data); err == nil {
+			c, ok := r.lookup(id)
+			if !ok {
+				return "", ErrContainerUnknown
+			}
+
+			if d, ok := c.BigDataDigests[key]; ok {
+				return d, nil
+			}
+		} else {
+			return "", err
+		}
+	}
+
+	return "", ErrDigestUnknown
+}
+
+func (r *containerStore) BigDataNames(id string) ([]string, error) {
+	c, ok := r.lookup(id)
+	if !ok {
+		return nil, ErrContainerUnknown
+	}
+
+	return copyStringSlice(c.BigDataNames), nil
+}
+
+func (r *containerStore) SetBigData(id, key string, data []byte) error {
+	if key == "" {
+		return errors.Wrapf(ErrInvalidBigDataName, "can't set empty name for container big data item")
+	}
+
+	c, ok := r.lookup(id)
+	if !ok {
+		return ErrContainerUnknown
+	}
+
+	if err := os.MkdirAll(r.datadir(c.ID), 0700); err != nil {
+		return err
+	}
+
+	err := ioutils.AtomicWriteFile(r.datapath(c.ID, key), data, 0600)
+	if err == nil {
+		save := false
+		if c.BigDataSizes == nil {
+			c.BigDataSizes = make(map[string]int64)
+		}
+
+		oldSize, sizeOk := c.BigDataSizes[key]
+		c.BigDataSizes[key] = int64(len(data))
+		if c.BigDataDigests == nil {
+			c.BigDataDigests = make(map[string]digest.Digest)
+		}
+
+		oldDigest, digestOk := c.BigDataDigests[key]
+		newDigest := digest.Canonical.FromBytes(data)
+		c.BigDataDigests[key] = newDigest
+		if !sizeOk || oldSize != c.BigDataSizes[key] || !digestOk || oldDigest != newDigest {
+			save = true
+		}
+
+		addName := true
+		for _, name := range c.BigDataNames {
+			if name == key {
+				addName = false
+				break
+			}
+		}
+
+		if addName {
+			c.BigDataNames = append(c.BigDataNames, key)
+			save = true
+		}
+
+		if save {
+			err = r.Save()
+		}
+	}
+
+	return err
+}
+
+func (r *containerStore) Wipe() error {
+	ids := make([]string, 0, len(r.byid))
+	for id := range r.byid {
+		ids = append(ids, id)
+	}
+
+	for _, id := range ids {
+		if err := r.Delete(id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *containerStore) Lock() {
+	r.lockfile.Lock()
+}
+
+func (r *containerStore) RecursiveLock() {
+	r.lockfile.RecursiveLock()
+}
+
+func (r *containerStore) RLock() {
+	r.lockfile.RLock()
+}
+
+func (r *containerStore) Unlock() {
+	r.lockfile.Unlock()
+}
+
+func (r *containerStore) Touch() error {
+	return r.lockfile.Touch()
+}
+
+func (r *containerStore) Modified() (bool, error) {
+	return r.lockfile.Modified()
+}
+
+func (r *containerStore) IsReadWrite() bool {
+	return r.lockfile.IsReadWrite()
+}
+
+func (r *containerStore) TouchedSince(when time.Time) bool {
+	return r.lockfile.TouchedSince(when)
+}
+
+func (r *containerStore) Locked() bool {
+	return r.lockfile.Locked()
+}
+
+func (r *containerStore) ReloadIfChanged() error {
+	r.loadMut.Lock()
+	defer r.loadMut.Unlock()
+
+	modified, err := r.Modified()
+	if err == nil && modified {
+		return r.Load()
+	}
+
+	return err
+}
