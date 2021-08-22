@@ -1,0 +1,3 @@
+package chrootarchive
+
+func init() {}
