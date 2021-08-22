@@ -71,3 +71,103 @@ func GetType(t byte) (string, error) {
 	}
 	return r, nil
 }
+
+const (
+	ManifestChecksumKey = "io.containers.zstd-chunked.manifest-checksum"
+	ManifestInfoKey     = "io.containers.zstd-chunked.manifest-position"
+
+	// ManifestTypeCRFS is a manifest file compatible with the CRFS TOC file.
+	ManifestTypeCRFS = 1
+
+	// FooterSizeSupported is the footer size supported by this implementation.
+	// Newer versions of the image format might increase this value, so reject
+	// any version that is not supported.
+	FooterSizeSupported = 40
+)
+
+var (
+	// when the zstd decoder encounters a skippable frame + 1 byte for the size, it
+	// will ignore it.
+	// https://tools.ietf.org/html/rfc8478#section-3.1.2
+	skippableFrameMagic = []byte{0x50, 0x2a, 0x4d, 0x18}
+
+	ZstdChunkedFrameMagic = []byte{0x47, 0x6e, 0x55, 0x6c, 0x49, 0x6e, 0x55, 0x78}
+)
+
+func appendZstdSkippableFrame(dest io.Writer, data []byte) error {
+	if _, err := dest.Write(skippableFrameMagic); err != nil {
+		return err
+	}
+
+	var size []byte = make([]byte, 4)
+	binary.LittleEndian.PutUint32(size, uint32(len(data)))
+	if _, err := dest.Write(size); err != nil {
+		return err
+	}
+
+	if _, err := dest.Write(data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, offset uint64, metadata []ZstdFileMetadata, level int) error {
+	// 8 is the size of the zstd skippable frame header + the frame size
+	manifestOffset := offset + 8
+
+	toc := ZstdTOC{
+		Version: 1,
+		Entries: metadata,
+	}
+
+	// Generate the manifest
+	manifest, err := json.Marshal(toc)
+	if err != nil {
+		return err
+	}
+
+	var compressedBuffer bytes.Buffer
+	zstdWriter, err := ZstdWriterWithLevel(&compressedBuffer, level)
+	if err != nil {
+		return err
+	}
+
+	if _, err := zstdWriter.Write(manifest); err != nil {
+		zstdWriter.Close()
+		return err
+	}
+
+	if err := zstdWriter.Close(); err != nil {
+		return err
+	}
+
+	compressedManifest := compressedBuffer.Bytes()
+
+	manifestDigester := digest.Canonical.Digester()
+	manifestChecksum := manifestDigester.Hash()
+	if _, err := manifestChecksum.Write(compressedManifest); err != nil {
+		return err
+	}
+
+	outMetadata[ManifestChecksumKey] = manifestDigester.Digest().String()
+	outMetadata[ManifestInfoKey] = fmt.Sprintf("%d:%d:%d:%d", manifestOffset, len(compressedManifest), len(manifest), ManifestTypeCRFS)
+	if err := appendZstdSkippableFrame(dest, compressedManifest); err != nil {
+		return err
+	}
+
+	// Store the offset to the manifest and its size in LE order
+	var manifestDataLE []byte = make([]byte, FooterSizeSupported)
+	binary.LittleEndian.PutUint64(manifestDataLE, manifestOffset)
+	binary.LittleEndian.PutUint64(manifestDataLE[8:], uint64(len(compressedManifest)))
+	binary.LittleEndian.PutUint64(manifestDataLE[16:], uint64(len(manifest)))
+	binary.LittleEndian.PutUint64(manifestDataLE[24:], uint64(ManifestTypeCRFS))
+	copy(manifestDataLE[32:], ZstdChunkedFrameMagic)
+
+	return appendZstdSkippableFrame(dest, manifestDataLE)
+}
+
+func ZstdWriterWithLevel(dest io.Writer, level int) (*zstd.Encoder, error) {
+	el := zstd.EncoderLevelFromZstd(level)
+	return zstd.NewWriter(dest, zstd.WithEncoderLevel(el))
+}
