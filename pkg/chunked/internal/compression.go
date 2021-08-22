@@ -42,19 +42,32 @@ type ZstdFileMetadata struct {
 	ChunkDigest string `json:"chunkDigest,omitempty"`
 }
 
-func typeToTarType(t string) (byte, error) {
-	r, found := typesToTar[t]
-	if !found {
-		return 0, fmt.Errorf("unknown type: %v", t)
-	}
+const (
+	TypeReg     = "reg"
+	TypeChunk   = "chunk"
+	TypeLink    = "hardlink"
+	TypeChar    = "char"
+	TypeBlock   = "block"
+	TypeDir     = "dir"
+	TypeFifo    = "fifo"
+	TypeSymlink = "symlink"
+)
 
-	return r, nil
+var TarTypes = map[byte]string{
+	tar.TypeReg:     TypeReg,
+	tar.TypeRegA:    TypeReg,
+	tar.TypeLink:    TypeLink,
+	tar.TypeChar:    TypeChar,
+	tar.TypeBlock:   TypeBlock,
+	tar.TypeDir:     TypeDir,
+	tar.TypeFifo:    TypeFifo,
+	tar.TypeSymlink: TypeSymlink,
 }
 
-func isZstdChunkedFrameMagic(data []byte) bool {
-	if len(data) < 8 {
-		return false
+func GetType(t byte) (string, error) {
+	r, found := TarTypes[t]
+	if !found {
+		return "", fmt.Errorf("unknown tarball type: %v", t)
 	}
-
-	return bytes.Equal(internal.ZstdChunkedFrameMagic, data[:8])
+	return r, nil
 }
