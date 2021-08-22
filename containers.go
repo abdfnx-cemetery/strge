@@ -126,6 +126,10 @@ func (c *Container) MountOpts() []string {
 
 func (r *containerStore) Containers() ([]Container, error) {
 	containers := make([]Container, len(r.containers))
+
+	for i := range r.containers {
+		containers[i] = *copyContainer(r.containers[i])
+	}
 	
 	return containers, nil
 }
