@@ -118,6 +118,7 @@ func (c *Container) MountOpts() []string {
 					mountOpts = append(mountOpts, flag)
 				}
 			}
+
 			return mountOpts
 		default:
 			return nil
@@ -132,4 +133,60 @@ func (r *containerStore) Containers() ([]Container, error) {
 	}
 	
 	return containers, nil
+}
+
+func (r *containerStore) containerspath() string {
+	return filepath.Join(r.dir, "containers.json")
+}
+
+func (r *containerStore) datadir(id string) string {
+	return filepath.Join(r.dir, id)
+}
+
+func (r *containerStore) datapath(id, key string) string {
+	return filepath.Join(r.datadir(id), makeBigDataBaseName(key))
+}
+
+func (r *containerStore) Load() error {
+	needSave := false
+	rpath := r.containerspath()
+	data, err := ioutil.ReadFile(rpath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	containers := []*Container{}
+	layers := make(map[string]*Container)
+	idlist := []string{}
+	ids := make(map[string]*Container)
+	names := make(map[string]*Container)
+
+	if err = json.Unmarshal(data, &containers); len(data) == 0 || err == nil {
+		idlist = make([]string, 0, len(containers))
+		for n, container := range containers {
+			idlist = append(idlist, container.ID)
+			ids[container.ID] = containers[n]
+			layers[container.LayerID] = containers[n]
+			for _, name := range container.Names {
+				if conflict, ok := names[name]; ok {
+					r.removeName(conflict, name)
+					needSave = true
+				}
+
+				names[name] = containers[n]
+			}
+		}
+	}
+
+	r.containers = containers
+	r.idindex = truncindex.NewTruncIndex(idlist)
+	r.byid = ids
+	r.bylayer = layers
+	r.byname = names
+
+	if needSave {
+		return r.Save()
+	}
+
+	return nil
 }
