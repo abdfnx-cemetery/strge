@@ -87,6 +87,7 @@ func GetRootUIDGID(uidMap, gidMap []IDMap) (int, int, error) {
 			return -1, -1, err
 		}
 	}
+
 	if len(gidMap) == 1 && gidMap[0].Size == 1 {
 		gid = gidMap[0].HostID
 	} else {
@@ -95,6 +96,7 @@ func GetRootUIDGID(uidMap, gidMap []IDMap) (int, int, error) {
 			return -1, -1, err
 		}
 	}
+
 	return uid, gid, nil
 }
 
@@ -105,12 +107,14 @@ func toContainer(hostID int, idMap []IDMap) (int, error) {
 	if idMap == nil {
 		return hostID, nil
 	}
+
 	for _, m := range idMap {
 		if (hostID >= m.HostID) && (hostID <= (m.HostID + m.Size - 1)) {
 			contID := m.ContainerID + (hostID - m.HostID)
 			return contID, nil
 		}
 	}
+
 	return -1, fmt.Errorf("Host ID %d cannot be mapped to a container ID", hostID)
 }
 
@@ -121,12 +125,14 @@ func toHost(contID int, idMap []IDMap) (int, error) {
 	if idMap == nil {
 		return contID, nil
 	}
+
 	for _, m := range idMap {
 		if (contID >= m.ContainerID) && (contID <= (m.ContainerID + m.Size - 1)) {
 			hostID := m.HostID + (contID - m.ContainerID)
 			return hostID, nil
 		}
 	}
+
 	return -1, fmt.Errorf("Container ID %d cannot be mapped to a host ID", contID)
 }
 
@@ -150,13 +156,16 @@ func NewIDMappings(username, groupname string) (*IDMappings, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	subgidRanges, err := readSubgid(groupname)
 	if err != nil {
 		return nil, err
 	}
+
 	if len(subuidRanges) == 0 {
 		return nil, fmt.Errorf("No subuid ranges found for user %q in %s", username, subuidFileName)
 	}
+
 	if len(subgidRanges) == 0 {
 		return nil, fmt.Errorf("No subgid ranges found for group %q in %s", groupname, subgidFileName)
 	}
@@ -197,6 +206,7 @@ func (i *IDMappings) ToHost(pair IDPair) (IDPair, error) {
 	if pair.GID != target.GID {
 		target.GID, err = toHost(pair.GID, i.gids)
 	}
+
 	return target, err
 }
 
@@ -206,6 +216,7 @@ func (i *IDMappings) ToContainer(pair IDPair) (int, int, error) {
 	if err != nil {
 		return -1, -1, err
 	}
+
 	gid, err := toContainer(pair.GID, i.gids)
 	return uid, gid, err
 }
@@ -241,6 +252,7 @@ func createIDMap(subidRanges ranges) []IDMap {
 		})
 		containerID = containerID + idrange.Length
 	}
+
 	return idMap
 }
 
@@ -260,6 +272,7 @@ func parseSubidFile(path, username string) (ranges, error) {
 	if err != nil {
 		return rangeList, err
 	}
+
 	defer subidFile.Close()
 
 	s := bufio.NewScanner(subidFile)
@@ -272,22 +285,27 @@ func parseSubidFile(path, username string) (ranges, error) {
 		if text == "" || strings.HasPrefix(text, "#") {
 			continue
 		}
+
 		parts := strings.Split(text, ":")
 		if len(parts) != 3 {
 			return rangeList, fmt.Errorf("Cannot parse subuid/gid information: Format not correct for %s file", path)
 		}
+
 		if parts[0] == username || username == "ALL" || (parts[0] == uidstr && parts[0] != "") {
 			startid, err := strconv.Atoi(parts[1])
 			if err != nil {
 				return rangeList, fmt.Errorf("String to int conversion failed during subuid/gid parsing of %s: %v", path, err)
 			}
+
 			length, err := strconv.Atoi(parts[2])
 			if err != nil {
 				return rangeList, fmt.Errorf("String to int conversion failed during subuid/gid parsing of %s: %v", path, err)
 			}
+
 			rangeList = append(rangeList, subIDRange{startid, length})
 		}
 	}
+
 	return rangeList, nil
 }
 
@@ -295,6 +313,7 @@ func checkChownErr(err error, name string, uid, gid int) error {
 	if e, ok := err.(*os.PathError); ok && e.Err == syscall.EINVAL {
 		return errors.Wrapf(err, "potentially insufficient UIDs or GIDs available in user namespace (requested %d:%d for %s): Check /etc/subuid and /etc/subgid", uid, gid, name)
 	}
+
 	return err
 }
 
@@ -304,6 +323,7 @@ func SafeChown(name string, uid, gid int) error {
 			return nil
 		}
 	}
+
 	return checkChownErr(os.Chown(name, uid, gid), name, uid, gid)
 }
 
@@ -313,6 +333,7 @@ func SafeLchown(name string, uid, gid int) error {
 			return nil
 		}
 	}
+
 	return checkChownErr(os.Lchown(name, uid, gid), name, uid, gid)
 }
 
@@ -350,5 +371,6 @@ func IsContiguous(mappings []IDMap) bool {
 			return false
 		}
 	}
+
 	return true
 }
