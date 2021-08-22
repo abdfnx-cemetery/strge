@@ -1,4 +1,4 @@
-package system
+package constants
 
 import (
 	"bufio"
@@ -10,8 +10,6 @@ import (
 	"github.com/docker/go-units"
 )
 
-// ReadMemInfo retrieves memory statistics of the host system and returns a
-// MemInfo type.
 func ReadMemInfo() (*MemInfo, error) {
 	file, err := os.Open("/proc/meminfo")
 	if err != nil {
