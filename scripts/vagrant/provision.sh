@@ -32,10 +32,10 @@ esac
 
 mkdir -p /go/src/github.com/gepis
 rm -f /go/src/github.com/gepis/strge
-ln -s /vagrant /go/src/github.com/gepis/strge
+ln -s /scripts/vagrant /go/src/github.com/gepis/strge
 
 export GOPATH=/go
 export PATH=/go/bin:${PATH}
 
-make -C /vagrant install.tools
+make -C /scripts/vagrant install.tools
 exit 0
