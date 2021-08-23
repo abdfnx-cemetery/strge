@@ -7,4 +7,6 @@ Vagrant.configure("2") do |config|
       sudo /vagrant/vagrant/provision.sh
     SHELL
   end
+  config.vm.define "debian" do |g|
+  end
 end
