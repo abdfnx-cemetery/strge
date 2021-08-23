@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"testing"
 
-	graphdriver "github.com/gepis/strge/drivers"
+	"github.com/gepis/strge/context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
@@ -32,7 +32,7 @@ func verifyFile(t testing.TB, path string, mode os.FileMode, uid, gid uint32) {
 	}
 }
 
-func createBase(t testing.TB, driver graphdriver.Driver, name string) {
+func createBase(t testing.TB, driver context.Driver, name string) {
 	// We need to be able to set any perms
 	oldmask := unix.Umask(0)
 	defer unix.Umask(oldmask)
@@ -40,7 +40,7 @@ func createBase(t testing.TB, driver graphdriver.Driver, name string) {
 	err := driver.CreateReadWrite(name, "", nil)
 	require.NoError(t, err)
 
-	dir, err := driver.Get(name, graphdriver.MountOpts{})
+	dir, err := driver.Get(name, context.MountOpts{})
 	require.NoError(t, err)
 	defer driver.Put(name)
 
@@ -53,8 +53,8 @@ func createBase(t testing.TB, driver graphdriver.Driver, name string) {
 	require.NoError(t, err)
 }
 
-func verifyBase(t testing.TB, driver graphdriver.Driver, name string, defaultPerm os.FileMode) {
-	dir, err := driver.Get(name, graphdriver.MountOpts{})
+func verifyBase(t testing.TB, driver context.Driver, name string, defaultPerm os.FileMode) {
+	dir, err := driver.Get(name, context.MountOpts{})
 	require.NoError(t, err)
 	defer driver.Put(name)
 

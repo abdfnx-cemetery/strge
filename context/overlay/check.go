@@ -13,14 +13,14 @@ import (
 	"github.com/gepis/strge/pkg/archive"
 	"github.com/gepis/strge/pkg/ioutils"
 	"github.com/gepis/strge/pkg/mount"
-	"github.com/gepis/strge/pkg/system"
+	"github.com/gepis/strge/pkg/constants"
 	"github.com/gepis/strge/pkg/unshare"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
-// doesSupportNativeDiff checks whether the filesystem has a bug
+// doesSupportNativeDiff checks whether the fileconstants has a bug
 // which copies up the opaque flag when copying up an opaque
 // directory or the kernel enable CONFIG_OVERLAY_FS_REDIRECT_DIR.
 // When these exist naive diff should be used.
@@ -56,7 +56,7 @@ func doesSupportNativeDiff(d, mountOpts string) error {
 	}
 
 	// Mark l2/d as opaque
-	if err := system.Lsetxattr(filepath.Join(td, "l2", "d"), archive.GetOverlayXattrName("opaque"), []byte("y"), 0); err != nil {
+	if err := constants.Lsetxattr(filepath.Join(td, "l2", "d"), archive.GetOverlayXattrName("opaque"), []byte("y"), 0); err != nil {
 		return errors.Wrap(err, "failed to set opaque flag on middle layer")
 	}
 
@@ -85,7 +85,7 @@ func doesSupportNativeDiff(d, mountOpts string) error {
 	}
 
 	// Check l3/d does not have opaque flag
-	xattrOpaque, err := system.Lgetxattr(filepath.Join(td, "l3", "d"), archive.GetOverlayXattrName("opaque"))
+	xattrOpaque, err := constants.Lgetxattr(filepath.Join(td, "l3", "d"), archive.GetOverlayXattrName("opaque"))
 	if err != nil {
 		return errors.Wrap(err, "failed to read opaque flag on upper layer")
 	}
@@ -102,7 +102,7 @@ func doesSupportNativeDiff(d, mountOpts string) error {
 		return errors.Wrap(err, "failed to rename dir in merged directory")
 	}
 	// get the xattr of "d2"
-	xattrRedirect, err := system.Lgetxattr(filepath.Join(td, "l3", "d2"), archive.GetOverlayXattrName("redirect"))
+	xattrRedirect, err := constants.Lgetxattr(filepath.Join(td, "l3", "d2"), archive.GetOverlayXattrName("redirect"))
 	if err != nil {
 		return errors.Wrap(err, "failed to read redirect flag on upper layer")
 	}
@@ -114,7 +114,7 @@ func doesSupportNativeDiff(d, mountOpts string) error {
 	return nil
 }
 
-// doesMetacopy checks if the filesystem is going to optimize changes to
+// doesMetacopy checks if the fileconstants is going to optimize changes to
 // metadata by using nodes marked with an "overlay.metacopy" attribute to avoid
 // copying up a file from a lower layer unless/until its contents are being
 // modified
@@ -171,7 +171,7 @@ func doesMetacopy(d, mountOpts string) (bool, error) {
 	if err := os.Chmod(filepath.Join(td, "merged", "f"), 0600); err != nil {
 		return false, errors.Wrap(err, "error changing permissions on file for metacopy check")
 	}
-	metacopy, err := system.Lgetxattr(filepath.Join(td, "l2", "f"), archive.GetOverlayXattrName("metacopy"))
+	metacopy, err := constants.Lgetxattr(filepath.Join(td, "l2", "f"), archive.GetOverlayXattrName("metacopy"))
 	if err != nil {
 		if errors.Is(err, unix.ENOTSUP) {
 			logrus.Info("metacopy option not supported")
@@ -182,7 +182,7 @@ func doesMetacopy(d, mountOpts string) (bool, error) {
 	return metacopy != nil, nil
 }
 
-// doesVolatile checks if the filesystem supports the "volatile" mount option
+// doesVolatile checks if the fileconstants supports the "volatile" mount option
 func doesVolatile(d string) (bool, error) {
 	td, err := ioutil.TempDir(d, "volatile-check")
 	if err != nil {

@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/containers/storage/types"
+	"github.com/gepis/strge/types"
 )
 
 var (

@@ -16,8 +16,8 @@ import (
 	"time"
 
 	strge "github.com/gepis/strge"
-	graphdriver "github.com/gepis/strge/drivers"
-	driversCopy "github.com/gepis/strge/drivers/copy"
+	"github.com/gepis/strge/context"
+	CCopy "github.com/gepis/strge/context/copy"
 	"github.com/gepis/strge/pkg/archive"
 	"github.com/gepis/strge/pkg/chunked/internal"
 	"github.com/gepis/strge/pkg/idtools"
@@ -69,7 +69,7 @@ func copyFileContent(src, destFile, root string, dirfd int, missingDirsMode, mod
 		return nil, -1, err
 	}
 
-	err = driversCopy.CopyRegularToFile(src, dstFile, st, &copyWithFileRange, &copyWithFileClone)
+	err = CCopy.CopyRegularToFile(src, dstFile, st, &copyWithFileRange, &copyWithFileClone)
 	if err != nil {
 		dstFile.Close()
 		return nil, -1, err
@@ -130,7 +130,7 @@ func getLayersCache(store strge.Store) (map[string][]internal.ZstdFileMetadata, 
 }
 
 // GetDiffer returns a differ than can be used with ApplyDiffWithDiffer.
-func GetDiffer(ctx context.Context, store strge.Store, blobSize int64, annotations map[string]string, iss ImageSourceSeekable) (graphdriver.Differ, error) {
+func GetDiffer(ctx context.Context, store strge.Store, blobSize int64, annotations map[string]string, iss ImageSourceSeekable) (context.Differ, error) {
 	if _, ok := annotations[internal.ManifestChecksumKey]; ok {
 		return makeZstdChunkedDiffer(ctx, store, blobSize, annotations, iss)
 	}
@@ -682,12 +682,12 @@ type hardLinkToCreate struct {
 	metadata *internal.ZstdFileMetadata
 }
 
-func (d *chunkedZstdDiffer) ApplyDiff(dest string, options *archive.TarOptions) (graphdriver.DriverWithDifferOutput, error) {
+func (d *chunkedZstdDiffer) ApplyDiff(dest string, options *archive.TarOptions) (context.DriverWithDifferOutput, error) {
 	bigData := map[string][]byte{
 		bigDataKey: d.manifest,
 	}
 
-	output := graphdriver.DriverWithDifferOutput{
+	output := context.DriverWithDifferOutput{
 		Differ:  d,
 		BigData: bigData,
 	}

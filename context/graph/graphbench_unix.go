@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	graphdriver "github.com/gepis/strge/drivers"
+	"github.com/gepis/strge/context"
 	"github.com/gepis/strge/pkg/stringid"
 )
 
@@ -45,7 +45,7 @@ func DriverBenchGetEmpty(b *testing.B, drivername string, driveroptions ...strin
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := driver.Get(base, graphdriver.MountOpts{})
+		_, err := driver.Get(base, context.MountOpts{})
 		b.StopTimer()
 		if err != nil {
 			b.Fatalf("Error getting mount: %s", err)
@@ -165,7 +165,7 @@ func DriverBenchDiffApplyN(b *testing.B, fileCount int, drivername string, drive
 			b.Fatal(err)
 		}
 
-		applyDiffSize, err := driver.ApplyDiff(diff, "", graphdriver.ApplyDiffOpts{})
+		applyDiffSize, err := driver.ApplyDiff(diff, "", context.ApplyDiffOpts{})
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -236,7 +236,7 @@ func DriverBenchDeepLayerRead(b *testing.B, layerCount int, drivername string, d
 		b.Fatal(err)
 	}
 
-	root, err := driver.Get(topLayer, graphdriver.MountOpts{})
+	root, err := driver.Get(topLayer, context.MountOpts{})
 	if err != nil {
 		b.Fatal(err)
 	}

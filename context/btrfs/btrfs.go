@@ -2,16 +2,6 @@
 
 package btrfs
 
-/*
-#include <stdlib.h>
-#include <dirent.h>
-#include <btrfs/ioctl.h>
-#include <btrfs/ctree.h>
-
-static void set_name_btrfs_ioctl_vol_args_v2(struct btrfs_ioctl_vol_args_v2* btrfs_struct, const char* value) {
-    snprintf(btrfs_struct->name, BTRFS_SUBVOL_NAME_MAX, "%s", value);
-}
-*/
 import "C"
 
 import (
@@ -26,12 +16,12 @@ import (
 	"sync"
 	"unsafe"
 
-	graphdriver "github.com/gepis/strge/drivers"
+	"github.com/gepis/strge/context"
 	"github.com/gepis/strge/pkg/directory"
 	"github.com/gepis/strge/pkg/idtools"
 	"github.com/gepis/strge/pkg/mount"
 	"github.com/gepis/strge/pkg/parsers"
-	"github.com/gepis/strge/pkg/system"
+	"github.com/gepis/strge/pkg/constants"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -42,7 +32,7 @@ import (
 const defaultPerms = os.FileMode(0555)
 
 func init() {
-	graphdriver.Register("btrfs", Init)
+	context.Register("btrfs", Init)
 }
 
 type btrfsOptions struct {
@@ -52,15 +42,15 @@ type btrfsOptions struct {
 
 // Init returns a new BTRFS driver.
 // An error is returned if BTRFS is not supported.
-func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) {
+func Init(home string, options context.Options) (context.Driver, error) {
 
-	fsMagic, err := graphdriver.GetFSMagic(home)
+	fsMagic, err := context.GetFSMagic(home)
 	if err != nil {
 		return nil, err
 	}
 
-	if fsMagic != graphdriver.FsMagicBtrfs {
-		return nil, errors.Wrapf(graphdriver.ErrPrerequisites, "%q is not on a btrfs filesystem", home)
+	if fsMagic != context.FsMagicBtrfs {
+		return nil, errors.Wrapf(context.ErrPrerequisites, "%q is not on a btrfs filesystem", home)
 	}
 
 	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
@@ -93,7 +83,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		}
 	}
 
-	return graphdriver.NewNaiveDiffDriver(driver, graphdriver.NewNaiveLayerIDMapUpdater(driver)), nil
+	return context.NewNaiveDiffDriver(driver, context.NewNaiveLayerIDMapUpdater(driver)), nil
 }
 
 func parseOptions(opt []string) (btrfsOptions, bool, error) {
@@ -464,18 +454,18 @@ func (d *Driver) quotasDirID(id string) string {
 }
 
 // CreateFromTemplate creates a layer with the same contents and parent as another layer.
-func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *graphdriver.CreateOpts, readWrite bool) error {
+func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *context.CreateOpts, readWrite bool) error {
 	return d.Create(id, template, opts)
 }
 
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
-func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
+func (d *Driver) CreateReadWrite(id, parent string, opts *context.CreateOpts) error {
 	return d.Create(id, parent, opts)
 }
 
 // Create the filesystem with given id.
-func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
+func (d *Driver) Create(id, parent string, opts *context.CreateOpts) error {
 	quotas := path.Join(d.home, "quotas")
 	subvolumes := path.Join(d.home, "subvolumes")
 	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
@@ -610,7 +600,7 @@ func (d *Driver) Remove(id string) error {
 		// This would allow unprivileged user to delete their owned subvolumes
 		// in kernel >= 4.18 without user_subvol_rm_alowed mount option.
 	}
-	if err := system.EnsureRemoveAll(dir); err != nil {
+	if err := constants.EnsureRemoveAll(dir); err != nil {
 		return err
 	}
 	if err := d.subvolRescanQuota(); err != nil {
@@ -620,7 +610,7 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get the requested filesystem id.
-func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
+func (d *Driver) Get(id string, options context.MountOpts) (string, error) {
 	dir := d.subvolumesDirID(id)
 	st, err := os.Stat(dir)
 	if err != nil {

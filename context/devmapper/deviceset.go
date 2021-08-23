@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	graphdriver "github.com/gepis/strge/drivers"
+	"github.com/gepis/strge/context"
 	"github.com/gepis/strge/pkg/devicemapper"
 	"github.com/gepis/strge/pkg/dmesg"
 	"github.com/gepis/strge/pkg/idtools"
@@ -1510,7 +1510,7 @@ func determineDriverCapabilities(version string) error {
 	versionSplit := strings.Split(version, ".")
 	major, err := strconv.Atoi(versionSplit[0])
 	if err != nil {
-		return errors.Wrapf(graphdriver.ErrNotSupported, "unable to parse driver major version %q as a number", versionSplit[0])
+		return errors.Wrapf(context.ErrNotSupported, "unable to parse driver major version %q as a number", versionSplit[0])
 	}
 
 	if major > 4 {
@@ -1524,7 +1524,7 @@ func determineDriverCapabilities(version string) error {
 
 	minor, err := strconv.Atoi(versionSplit[1])
 	if err != nil {
-		return errors.Wrapf(graphdriver.ErrNotSupported, "unable to parse driver minor version %q as a number", versionSplit[1])
+		return errors.Wrapf(context.ErrNotSupported, "unable to parse driver minor version %q as a number", versionSplit[1])
 	}
 
 	/*
@@ -1695,7 +1695,7 @@ func (devices *DeviceSet) initDevmapper(doInit bool) (retErr error) {
 		logrus.Error("devmapper: Udev sync is not supported. This will lead to data loss and unexpected behavior. Install a more recent version of libdevmapper or select a different storage driver. For more information, see https://docs.docker.com/engine/reference/commandline/dockerd/#storage-driver-options")
 
 		if !devices.overrideUdevSyncCheck {
-			return graphdriver.ErrNotSupported
+			return context.ErrNotSupported
 		}
 	}
 
@@ -1780,12 +1780,12 @@ func (devices *DeviceSet) initDevmapper(doInit bool) (retErr error) {
 			metadataFile *os.File
 		)
 
-		fsMagic, err := graphdriver.GetFSMagic(devices.loopbackDir())
+		fsMagic, err := context.GetFSMagic(devices.loopbackDir())
 		if err != nil {
 			return err
 		}
 		switch fsMagic {
-		case graphdriver.FsMagicAufs:
+		case context.FsMagicAufs:
 			return errors.Errorf("devmapper: Loopback devices can not be created on AUFS filesystems")
 		}
 
@@ -2367,7 +2367,7 @@ func (devices *DeviceSet) xfsSetNospaceRetries(info *devInfo) error {
 }
 
 // MountDevice mounts the device if not already mounted.
-func (devices *DeviceSet) MountDevice(hash, path string, moptions graphdriver.MountOpts) error {
+func (devices *DeviceSet) MountDevice(hash, path string, moptions context.MountOpts) error {
 	info, err := devices.lookupDeviceWithLock(hash)
 	if err != nil {
 		return err
@@ -2669,11 +2669,11 @@ func NewDeviceSet(root string, doInit bool, options []string, uidMaps, gidMaps [
 	version, err := devicemapper.GetDriverVersion()
 	if err != nil {
 		// Can't even get driver version, assume not supported
-		return nil, graphdriver.ErrNotSupported
+		return nil, context.ErrNotSupported
 	}
 
 	if err := determineDriverCapabilities(version); err != nil {
-		return nil, graphdriver.ErrNotSupported
+		return nil, context.ErrNotSupported
 	}
 
 	if driverDeferredRemovalSupport && devicemapper.LibraryDeferredRemovalSupport {

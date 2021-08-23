@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gepis/strge/pkg/homedir"
-	"github.com/gepis/strge/pkg/system"
+	"github.com/gepis/strge/pkg/home"
+	"github.com/gepis/strge/pkg/constants"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -35,7 +35,7 @@ type rootlessRuntimeDirEnvironment interface {
 	getTmpPerUserDir() string
 
 	homeDirGetRuntimeDir() (string, error)
-	systemLstat(string) (*system.StatT, error)
+	systemLstat(string) (*constants.StatT, error)
 	homedirGet() string
 }
 
@@ -58,15 +58,15 @@ func (env rootlessRuntimeDirEnvironmentImplementation) getTmpPerUserDir() string
 }
 
 func (rootlessRuntimeDirEnvironmentImplementation) homeDirGetRuntimeDir() (string, error) {
-	return homedir.GetRuntimeDir()
+	return home.GetRuntimeDir()
 }
 
-func (rootlessRuntimeDirEnvironmentImplementation) systemLstat(path string) (*system.StatT, error) {
-	return system.Lstat(path)
+func (rootlessRuntimeDirEnvironmentImplementation) systemLstat(path string) (*constants.StatT, error) {
+	return constants.Lstat(path)
 }
 
 func (rootlessRuntimeDirEnvironmentImplementation) homedirGet() string {
-	return homedir.Get()
+	return home.Get()
 }
 
 func isRootlessRuntimeDirOwner(dir string, env rootlessRuntimeDirEnvironment) bool {
@@ -134,12 +134,12 @@ func getRootlessDirInfo(rootlessUID int) (string, string, error) {
 		return "", "", err
 	}
 
-	dataDir, err := homedir.GetDataHome()
+	dataDir, err := home.GetDataHome()
 	if err == nil {
 		return dataDir, rootlessRuntime, nil
 	}
 
-	home := homedir.Get()
+	home := home.Get()
 	if home == "" {
 		return "", "", errors.Wrapf(err, "neither XDG_DATA_HOME nor HOME was set non-empty")
 	}
@@ -195,7 +195,7 @@ func DefaultConfigFile(rootless bool) (string, error) {
 		return filepath.Join(configHome, "gepis/storage.conf"), nil
 	}
 
-	home := homedir.Get()
+	home := home.Get()
 	if home == "" {
 		return "", errors.New("cannot determine user's homedir")
 	}

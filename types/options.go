@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/gepis/strge/drivers/overlay"
+	"github.com/gepis/strge/context/overlay"
 	cfg "github.com/gepis/strge/pkg/config"
 	"github.com/gepis/strge/pkg/idtools"
 	"github.com/sirupsen/logrus"

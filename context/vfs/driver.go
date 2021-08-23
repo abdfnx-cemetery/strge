@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gepis/strge/context/context"
-	"github.com/gepis/strge/context/pkg/archive"
-	"github.com/gepis/strge/context/pkg/directory"
-	"github.com/gepis/strge/context/pkg/idtools"
-	"github.com/gepis/strge/context/pkg/parsers"
-	"github.com/gepis/strge/context/pkg/system"
+	"github.com/gepis/strge/context"
+	"github.com/gepis/strge/pkg/archive"
+	"github.com/gepis/strge/pkg/directory"
+	"github.com/gepis/strge/pkg/idtools"
+	"github.com/gepis/strge/pkg/parsers"
+	"github.com/gepis/strge/pkg/constants"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"github.com/vbatts/tar-split/tar/storage"
@@ -137,12 +137,12 @@ func (d *Driver) ApplyDiff(id, parent string, options context.ApplyDiffOpts) (si
 }
 
 // CreateReadWrite creates a layer that is writable for use as a container
-// file system.
+// file constants.
 func (d *Driver) CreateReadWrite(id, parent string, opts *context.CreateOpts) error {
 	return d.create(id, parent, opts, false)
 }
 
-// Create prepares the filesystem for the VFS driver and copies the directory for the given id under the parent.
+// Create prepares the fileconstants for the VFS driver and copies the directory for the given id under the parent.
 func (d *Driver) Create(id, parent string, opts *context.CreateOpts) error {
 	return d.create(id, parent, opts, true)
 }
@@ -171,7 +171,7 @@ func (d *Driver) create(id, parent string, opts *context.CreateOpts, ro bool) (r
 
 	rootPerms := defaultPerms
 	if parent != "" {
-		st, err := system.Stat(d.dir(parent))
+		st, err := constants.Stat(d.dir(parent))
 		if err != nil {
 			return err
 		}
@@ -216,7 +216,7 @@ func (d *Driver) dir(id string) string {
 
 // Remove deletes the content from the directory for a given id.
 func (d *Driver) Remove(id string) error {
-	return system.EnsureRemoveAll(d.dir(id))
+	return constants.EnsureRemoveAll(d.dir(id))
 }
 
 // Get returns the directory for the given id.
@@ -293,7 +293,7 @@ func (d *Driver) Diff(id string, idMappings *idtools.IDMappings, parent string, 
 
 // DiffSize calculates the changes between the specified id
 // and its parent and returns the size in bytes of the changes
-// relative to its base filesystem directory.
+// relative to its base fileconstants directory.
 func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (size int64, err error) {
 	return d.naiveDiff.DiffSize(id, idMappings, parent, parentMappings, mountLabel)
 }

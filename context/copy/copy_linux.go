@@ -24,7 +24,7 @@ import (
 
 	"github.com/gepis/strge/pkg/idtools"
 	"github.com/gepis/strge/pkg/pools"
-	"github.com/gepis/strge/pkg/system"
+	"github.com/gepis/strge/pkg/constants"
 	"github.com/gepis/strge/pkg/unshare"
 	"github.com/opencontainers/runc/libcontainer/userns"
 	"golang.org/x/sys/unix"
@@ -106,12 +106,12 @@ func legacyCopy(srcFile io.Reader, dstFile io.Writer) error {
 }
 
 func copyXattr(srcPath, dstPath, attr string) error {
-	data, err := system.Lgetxattr(srcPath, attr)
+	data, err := constants.Lgetxattr(srcPath, attr)
 	if err != nil && !errors.Is(err, unix.EOPNOTSUPP) {
 		return err
 	}
 	if data != nil {
-		if err := system.Lsetxattr(dstPath, attr, data, 0); err != nil {
+		if err := constants.Lsetxattr(dstPath, attr, data, 0); err != nil {
 			return err
 		}
 	}
@@ -244,19 +244,19 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 			}
 		}
 
-		// system.Chtimes doesn't support a NOFOLLOW flag atm
+		// constants.Chtimes doesn't support a NOFOLLOW flag atm
 		// nolint: unconvert
 		if f.IsDir() {
 			dirsToSetMtimes.PushFront(&dirMtimeInfo{dstPath: &dstPath, stat: stat})
 		} else if !isSymlink {
 			aTime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec))
 			mTime := time.Unix(int64(stat.Mtim.Sec), int64(stat.Mtim.Nsec))
-			if err := system.Chtimes(dstPath, aTime, mTime); err != nil {
+			if err := constants.Chtimes(dstPath, aTime, mTime); err != nil {
 				return err
 			}
 		} else {
 			ts := []syscall.Timespec{stat.Atim, stat.Mtim}
-			if err := system.LUtimesNano(dstPath, ts); err != nil {
+			if err := constants.LUtimesNano(dstPath, ts); err != nil {
 				return err
 			}
 		}
@@ -268,7 +268,7 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 	for e := dirsToSetMtimes.Front(); e != nil; e = e.Next() {
 		mtimeInfo := e.Value.(*dirMtimeInfo)
 		ts := []syscall.Timespec{mtimeInfo.stat.Atim, mtimeInfo.stat.Mtim}
-		if err := system.LUtimesNano(*mtimeInfo.dstPath, ts); err != nil {
+		if err := constants.LUtimesNano(*mtimeInfo.dstPath, ts); err != nil {
 			return err
 		}
 	}
@@ -281,7 +281,7 @@ func doCopyXattrs(srcPath, dstPath string) error {
 		return err
 	}
 
-	xattrs, err := system.Llistxattr(srcPath)
+	xattrs, err := constants.Llistxattr(srcPath)
 	if err != nil && !errors.Is(err, unix.EOPNOTSUPP) {
 		return err
 	}

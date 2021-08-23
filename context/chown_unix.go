@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/gepis/strge/pkg/idtools"
-	"github.com/gepis/strge/pkg/system"
+	"github.com/gepis/strge/pkg/constants"
 )
 
 func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.IDMappings) error {
@@ -55,25 +55,25 @@ func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.
 	}
 
 	if uid != int(st.Uid) || gid != int(st.Gid) {
-		cap, err := system.Lgetxattr(path, "security.capability")
-		if err != nil && !errors.Is(err, system.EOPNOTSUPP) && err != system.ErrNotSupportedPlatform {
+		cap, err := constants.Lgetxattr(path, "security.capability")
+		if err != nil && !errors.Is(err, constants.EOPNOTSUPP) && err != constants.ErrNotSupportedPlatform {
 			return fmt.Errorf("%s: %v", os.Args[0], err)
 		}
 
 		// Make the change.
-		if err := system.Lchown(path, uid, gid); err != nil {
+		if err := constants.Lchown(path, uid, gid); err != nil {
 			return fmt.Errorf("%s: %v", os.Args[0], err)
 		}
 
 		// Restore the SUID and SGID bits if they were originally set.
 		if (info.Mode()&os.ModeSymlink == 0) && info.Mode()&(os.ModeSetuid|os.ModeSetgid) != 0 {
-			if err := system.Chmod(path, info.Mode()); err != nil {
+			if err := constants.Chmod(path, info.Mode()); err != nil {
 				return fmt.Errorf("%s: %v", os.Args[0], err)
 			}
 		}
 
 		if cap != nil {
-			if err := system.Lsetxattr(path, "security.capability", cap, 0); err != nil {
+			if err := constants.Lsetxattr(path, "security.capability", cap, 0); err != nil {
 				return fmt.Errorf("%s: %v", os.Args[0], err)
 			}
 		}

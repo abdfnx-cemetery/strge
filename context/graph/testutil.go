@@ -9,7 +9,7 @@ import (
 	"path"
 	"sort"
 
-	graphdriver "github.com/gepis/strge/drivers"
+	"github.com/gepis/strge/context"
 	"github.com/gepis/strge/pkg/archive"
 	"github.com/gepis/strge/pkg/stringid"
 )
@@ -29,8 +29,8 @@ func randomContent(size int, seed int64) []byte {
 	return content
 }
 
-func addFiles(drv graphdriver.Driver, layer string, seed int64) error {
-	root, err := drv.Get(layer, graphdriver.MountOpts{})
+func addFiles(drv context.Driver, layer string, seed int64) error {
+	root, err := drv.Get(layer, context.MountOpts{})
 	if err != nil {
 		return err
 	}
@@ -49,8 +49,8 @@ func addFiles(drv graphdriver.Driver, layer string, seed int64) error {
 	return ioutil.WriteFile(path.Join(root, "file-c"), randomContent(128*128, seed+2), 0755)
 }
 
-func checkFile(drv graphdriver.Driver, layer, filename string, content []byte) error {
-	root, err := drv.Get(layer, graphdriver.MountOpts{})
+func checkFile(drv context.Driver, layer, filename string, content []byte) error {
+	root, err := drv.Get(layer, context.MountOpts{})
 	if err != nil {
 		return err
 	}
@@ -68,8 +68,8 @@ func checkFile(drv graphdriver.Driver, layer, filename string, content []byte) e
 	return nil
 }
 
-func addFile(drv graphdriver.Driver, layer, filename string, content []byte) error {
-	root, err := drv.Get(layer, graphdriver.MountOpts{})
+func addFile(drv context.Driver, layer, filename string, content []byte) error {
+	root, err := drv.Get(layer, context.MountOpts{})
 	if err != nil {
 		return err
 	}
@@ -78,8 +78,8 @@ func addFile(drv graphdriver.Driver, layer, filename string, content []byte) err
 	return ioutil.WriteFile(path.Join(root, filename), content, 0755)
 }
 
-func addDirectory(drv graphdriver.Driver, layer, dir string) error {
-	root, err := drv.Get(layer, graphdriver.MountOpts{})
+func addDirectory(drv context.Driver, layer, dir string) error {
+	root, err := drv.Get(layer, context.MountOpts{})
 	if err != nil {
 		return err
 	}
@@ -88,8 +88,8 @@ func addDirectory(drv graphdriver.Driver, layer, dir string) error {
 	return os.MkdirAll(path.Join(root, dir), 0755)
 }
 
-func removeAll(drv graphdriver.Driver, layer string, names ...string) error {
-	root, err := drv.Get(layer, graphdriver.MountOpts{})
+func removeAll(drv context.Driver, layer string, names ...string) error {
+	root, err := drv.Get(layer, context.MountOpts{})
 	if err != nil {
 		return err
 	}
@@ -103,8 +103,8 @@ func removeAll(drv graphdriver.Driver, layer string, names ...string) error {
 	return nil
 }
 
-func checkFileRemoved(drv graphdriver.Driver, layer, filename string) error {
-	root, err := drv.Get(layer, graphdriver.MountOpts{})
+func checkFileRemoved(drv context.Driver, layer, filename string) error {
+	root, err := drv.Get(layer, context.MountOpts{})
 	if err != nil {
 		return err
 	}
@@ -119,8 +119,8 @@ func checkFileRemoved(drv graphdriver.Driver, layer, filename string) error {
 	return nil
 }
 
-func addManyFiles(drv graphdriver.Driver, layer string, count int, seed int64) error {
-	root, err := drv.Get(layer, graphdriver.MountOpts{})
+func addManyFiles(drv context.Driver, layer string, count int, seed int64) error {
+	root, err := drv.Get(layer, context.MountOpts{})
 	if err != nil {
 		return err
 	}
@@ -142,8 +142,8 @@ func addManyFiles(drv graphdriver.Driver, layer string, count int, seed int64) e
 	return nil
 }
 
-func changeManyFiles(drv graphdriver.Driver, layer string, count int, seed int64) ([]archive.Change, error) {
-	root, err := drv.Get(layer, graphdriver.MountOpts{})
+func changeManyFiles(drv context.Driver, layer string, count int, seed int64) ([]archive.Change, error) {
+	root, err := drv.Get(layer, context.MountOpts{})
 	if err != nil {
 		return nil, err
 	}
@@ -202,8 +202,8 @@ func changeManyFiles(drv graphdriver.Driver, layer string, count int, seed int64
 	return changes, nil
 }
 
-func checkManyFiles(drv graphdriver.Driver, layer string, count int, seed int64) error {
-	root, err := drv.Get(layer, graphdriver.MountOpts{})
+func checkManyFiles(drv context.Driver, layer string, count int, seed int64) error {
+	root, err := drv.Get(layer, context.MountOpts{})
 	if err != nil {
 		return err
 	}
@@ -256,8 +256,8 @@ func checkChanges(expected, actual []archive.Change) error {
 	return nil
 }
 
-func addLayerFiles(drv graphdriver.Driver, layer, parent string, i int) error {
-	root, err := drv.Get(layer, graphdriver.MountOpts{})
+func addLayerFiles(drv context.Driver, layer, parent string, i int) error {
+	root, err := drv.Get(layer, context.MountOpts{})
 	if err != nil {
 		return err
 	}
@@ -280,7 +280,7 @@ func addLayerFiles(drv graphdriver.Driver, layer, parent string, i int) error {
 	return nil
 }
 
-func addManyLayers(drv graphdriver.Driver, baseLayer string, count int) (string, error) {
+func addManyLayers(drv context.Driver, baseLayer string, count int) (string, error) {
 	lastLayer := baseLayer
 	for i := 1; i <= count; i++ {
 		nextLayer := stringid.GenerateRandomID()
@@ -297,8 +297,8 @@ func addManyLayers(drv graphdriver.Driver, baseLayer string, count int) (string,
 	return lastLayer, nil
 }
 
-func checkManyLayers(drv graphdriver.Driver, layer string, count int) error {
-	root, err := drv.Get(layer, graphdriver.MountOpts{})
+func checkManyLayers(drv context.Driver, layer string, count int) error {
+	root, err := drv.Get(layer, context.MountOpts{})
 	if err != nil {
 		return err
 	}

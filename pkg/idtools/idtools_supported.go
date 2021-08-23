@@ -8,16 +8,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-/*
-#cgo LDFLAGS: -l subid
-#include <shadow/subid.h>
-#include <stdlib.h>
-const char *Prog = "storage";
-struct subid_range get_range(struct subid_range *ranges, int i)
-{
-    return ranges[i];
-}
-*/
 import "C"
 
 func readSubid(username string, isUser bool) (ranges, error) {

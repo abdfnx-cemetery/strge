@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	graphdriver "github.com/gepis/strge/drivers"
+	"github.com/gepis/strge/context"
 	"github.com/gepis/strge/pkg/directory"
 	"github.com/gepis/strge/pkg/idtools"
 	"github.com/gepis/strge/pkg/mount"
@@ -33,7 +33,7 @@ type zfsOptions struct {
 const defaultPerms = os.FileMode(0555)
 
 func init() {
-	graphdriver.Register("zfs", Init)
+	context.Register("zfs", Init)
 }
 
 // Logger returns a zfs logger implementation.
@@ -47,20 +47,20 @@ func (*Logger) Log(cmd []string) {
 // Init returns a new ZFS driver.
 // It takes base mount path and an array of options which are represented as key value pairs.
 // Each option is in the for key=value. 'zfs.fsname' is expected to be a valid key in the options.
-func Init(base string, opt graphdriver.Options) (graphdriver.Driver, error) {
+func Init(base string, opt context.Options) (context.Driver, error) {
 	var err error
 
 	logger := logrus.WithField("storage-driver", "zfs")
 
 	if _, err := exec.LookPath("zfs"); err != nil {
 		logger.Debugf("zfs command is not available: %v", err)
-		return nil, errors.Wrap(graphdriver.ErrPrerequisites, "the 'zfs' command is not available")
+		return nil, errors.Wrap(context.ErrPrerequisites, "the 'zfs' command is not available")
 	}
 
 	file, err := os.OpenFile("/dev/zfs", os.O_RDWR, 0600)
 	if err != nil {
 		logger.Debugf("cannot open /dev/zfs: %v", err)
-		return nil, errors.Wrapf(graphdriver.ErrPrerequisites, "could not open /dev/zfs: %v", err)
+		return nil, errors.Wrapf(context.ErrPrerequisites, "could not open /dev/zfs: %v", err)
 	}
 	defer file.Close()
 
@@ -120,9 +120,9 @@ func Init(base string, opt graphdriver.Options) (graphdriver.Driver, error) {
 		filesystemsCache: filesystemsCache,
 		uidMaps:          opt.UIDMaps,
 		gidMaps:          opt.GIDMaps,
-		ctr:              graphdriver.NewRefCounter(graphdriver.NewDefaultChecker()),
+		ctr:              context.NewRefCounter(context.NewDefaultChecker()),
 	}
-	return graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d)), nil
+	return context.NewNaiveDiffDriver(d, context.NewNaiveLayerIDMapUpdater(d)), nil
 }
 
 func parseOptions(opt []string) (zfsOptions, error) {
@@ -179,7 +179,7 @@ type Driver struct {
 	filesystemsCache map[string]bool
 	uidMaps          []idtools.IDMap
 	gidMaps          []idtools.IDMap
-	ctr              *graphdriver.RefCounter
+	ctr              *context.RefCounter
 }
 
 func (d *Driver) String() string {
@@ -263,18 +263,18 @@ func (d *Driver) mountPath(id string) string {
 }
 
 // CreateFromTemplate creates a layer with the same contents and parent as another layer.
-func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *graphdriver.CreateOpts, readWrite bool) error {
+func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *context.CreateOpts, readWrite bool) error {
 	return d.Create(id, template, opts)
 }
 
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
-func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
+func (d *Driver) CreateReadWrite(id, parent string, opts *context.CreateOpts) error {
 	return d.Create(id, parent, opts)
 }
 
 // Create prepares the dataset and filesystem for the ZFS driver for the given id under the parent.
-func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
+func (d *Driver) Create(id, parent string, opts *context.CreateOpts) error {
 	err := d.create(id, parent, opts)
 	if err == nil {
 		return nil
@@ -297,7 +297,7 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 	return d.create(id, parent, opts)
 }
 
-func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) error {
+func (d *Driver) create(id, parent string, opts *context.CreateOpts) error {
 	var storageOpt map[string]string
 	if opts != nil {
 		storageOpt = opts.StorageOpt
@@ -408,7 +408,7 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get returns the mountpoint for the given id after creating the target directories if necessary.
-func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr error) {
+func (d *Driver) Get(id string, options context.MountOpts) (_ string, retErr error) {
 
 	mountpoint := d.mountPath(id)
 	if count := d.ctr.Increment(mountpoint); count > 1 {

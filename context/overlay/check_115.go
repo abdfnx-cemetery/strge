@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/gepis/strge/pkg/archive"
-	"github.com/gepis/strge/pkg/system"
+	"github.com/gepis/strge/pkg/constants"
 )
 
 func scanForMountProgramIndicators(home string) (detected bool, err error) {
@@ -25,7 +25,7 @@ func scanForMountProgramIndicators(home string) (detected bool, err error) {
 			return filepath.SkipDir
 		}
 		if info.IsDir() {
-			xattrs, err := system.Llistxattr(path)
+			xattrs, err := constants.Llistxattr(path)
 			if err != nil {
 				return err
 			}

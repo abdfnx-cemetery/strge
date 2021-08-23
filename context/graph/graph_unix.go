@@ -14,7 +14,7 @@ import (
 	"testing"
 	"unsafe"
 
-	graphdriver "github.com/gepis/strge/drivers"
+	"github.com/gepis/strge/context"
 	"github.com/gepis/strge/pkg/archive"
 	"github.com/gepis/strge/pkg/stringid"
 	"github.com/docker/go-units"
@@ -33,11 +33,11 @@ const (
 	modifiedPerms = os.FileMode(0711)
 )
 
-// Driver conforms to graphdriver.Driver interface and
+// Driver conforms to context.Driver interface and
 // contains information such as root and reference count of the number of clients using it.
 // This helps in testing drivers added into the framework.
 type Driver struct {
-	graphdriver.Driver
+	context.Driver
 	root     string
 	runroot  string
 	refCount int
@@ -50,11 +50,11 @@ func newDriver(t testing.TB, name string, options []string) *Driver {
 	require.NoError(t, err)
 
 	require.NoError(t, os.MkdirAll(root, 0755))
-	d, err := graphdriver.GetDriver(name, graphdriver.Options{DriverOptions: options, Root: root, RunRoot: runroot})
+	d, err := context.GetDriver(name, context.Options{DriverOptions: options, Root: root, RunRoot: runroot})
 	if err != nil {
-		t.Logf("graphdriver: %v\n", err)
+		t.Logf("context: %v\n", err)
 		cause := errors.Cause(err)
-		if cause == graphdriver.ErrNotSupported || cause == graphdriver.ErrPrerequisites || cause == graphdriver.ErrIncompatibleFS {
+		if cause == context.ErrNotSupported || cause == context.ErrPrerequisites || cause == context.ErrIncompatibleFS {
 			t.Skipf("Driver %s not supported", name)
 		}
 		t.Fatal(err)
@@ -71,7 +71,7 @@ func cleanup(t testing.TB, d *Driver) {
 }
 
 // GetDriver create a new driver with given name or return an existing driver with the name updating the reference count.
-func GetDriver(t testing.TB, name string, options ...string) graphdriver.Driver {
+func GetDriver(t testing.TB, name string, options ...string) context.Driver {
 	if drv == nil {
 		drv = newDriver(t, name, options)
 	} else {
@@ -108,7 +108,7 @@ func DriverTestCreateEmpty(t testing.TB, drivername string, driverOptions ...str
 		t.Fatal("Newly created image doesn't exist")
 	}
 
-	dir, err := driver.Get("empty", graphdriver.MountOpts{})
+	dir, err := driver.Get("empty", context.MountOpts{})
 	require.NoError(t, err)
 
 	verifyFile(t, dir, defaultPerms|os.ModeDir, 0, 0)
@@ -151,7 +151,7 @@ func DriverTestCreateSnap(t testing.TB, drivername string, driverOptions ...stri
 
 	verifyBase(t, driver, "Snap", defaultPerms)
 
-	root, err := driver.Get("Snap", graphdriver.MountOpts{})
+	root, err := driver.Get("Snap", context.MountOpts{})
 	assert.NoError(t, err)
 	err = os.Chmod(root, modifiedPerms)
 	require.NoError(t, err)
@@ -359,7 +359,7 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 		t.Fatal(err)
 	}
 
-	applyDiffSize, err := driver.ApplyDiff(diff, base, graphdriver.ApplyDiffOpts{Diff: bytes.NewReader(buf.Bytes())})
+	applyDiffSize, err := driver.ApplyDiff(diff, base, context.ApplyDiffOpts{Diff: bytes.NewReader(buf.Bytes())})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -437,14 +437,14 @@ func DriverTestSetQuota(t *testing.T, drivername string) {
 	defer PutDriver(t)
 
 	createBase(t, driver, "Base")
-	createOpts := &graphdriver.CreateOpts{}
+	createOpts := &context.CreateOpts{}
 	createOpts.StorageOpt = make(map[string]string, 1)
 	createOpts.StorageOpt["size"] = "50M"
 	if err := driver.Create("zfsTest", "Base", createOpts); err != nil {
 		t.Fatal(err)
 	}
 
-	mountPath, err := driver.Get("zfsTest", graphdriver.MountOpts{})
+	mountPath, err := driver.Get("zfsTest", context.MountOpts{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -474,7 +474,7 @@ func DriverTestEcho(t testing.TB, drivername string, driverOptions ...string) {
 			t.Fatal(err)
 		}
 
-		if root, err = driver.Get(base, graphdriver.MountOpts{}); err != nil {
+		if root, err = driver.Get(base, context.MountOpts{}); err != nil {
 			t.Fatal(err)
 		}
 
@@ -509,7 +509,7 @@ func DriverTestEcho(t testing.TB, drivername string, driverOptions ...string) {
 			t.Fatal(err)
 		}
 
-		if root, err = driver.Get(second, graphdriver.MountOpts{}); err != nil {
+		if root, err = driver.Get(second, context.MountOpts{}); err != nil {
 			t.Fatal(err)
 		}
 
@@ -535,7 +535,7 @@ func DriverTestEcho(t testing.TB, drivername string, driverOptions ...string) {
 			t.Fatal(err)
 		}
 
-		if root, err = driver.Get(third, graphdriver.MountOpts{}); err != nil {
+		if root, err = driver.Get(third, context.MountOpts{}); err != nil {
 			t.Fatal(err)
 		}
 

@@ -24,5 +24,6 @@ func ioctlBlkDiscard(fd uintptr, offset, length uint64) error {
 	if _, _, err := unix.Syscall(unix.SYS_IOCTL, fd, BlkDiscard, uintptr(unsafe.Pointer(&r[0]))); err != 0 {
 		return err
 	}
+
 	return nil
 }

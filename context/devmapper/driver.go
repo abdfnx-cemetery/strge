@@ -9,7 +9,7 @@ import (
 	"path"
 	"strconv"
 
-	graphdriver "github.com/gepis/strge/drivers"
+	"github.com/gepis/strge/context"
 	"github.com/gepis/strge/pkg/devicemapper"
 	"github.com/gepis/strge/pkg/directory"
 	"github.com/gepis/strge/pkg/idtools"
@@ -23,7 +23,7 @@ import (
 const defaultPerms = os.FileMode(0555)
 
 func init() {
-	graphdriver.Register("devicemapper", Init)
+	context.Register("devicemapper", Init)
 }
 
 // Driver contains the device set mounted and the home directory
@@ -32,12 +32,12 @@ type Driver struct {
 	home    string
 	uidMaps []idtools.IDMap
 	gidMaps []idtools.IDMap
-	ctr     *graphdriver.RefCounter
+	ctr     *context.RefCounter
 	locker  *locker.Locker
 }
 
 // Init creates a driver with the given home and the set of options.
-func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) {
+func Init(home string, options context.Options) (context.Driver, error) {
 	deviceSet, err := NewDeviceSet(home, true, options.DriverOptions, options.UIDMaps, options.GIDMaps)
 	if err != nil {
 		return nil, err
@@ -52,11 +52,11 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		home:      home,
 		uidMaps:   options.UIDMaps,
 		gidMaps:   options.GIDMaps,
-		ctr:       graphdriver.NewRefCounter(graphdriver.NewDefaultChecker()),
+		ctr:       context.NewRefCounter(context.NewDefaultChecker()),
 		locker:    locker.New(),
 	}
 
-	return graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d)), nil
+	return context.NewNaiveDiffDriver(d, context.NewNaiveLayerIDMapUpdater(d)), nil
 }
 
 func (d *Driver) String() string {
@@ -133,18 +133,18 @@ func (d *Driver) Cleanup() error {
 }
 
 // CreateFromTemplate creates a layer with the same contents and parent as another layer.
-func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *graphdriver.CreateOpts, readWrite bool) error {
+func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *context.CreateOpts, readWrite bool) error {
 	return d.Create(id, template, opts)
 }
 
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
-func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
+func (d *Driver) CreateReadWrite(id, parent string, opts *context.CreateOpts) error {
 	return d.Create(id, parent, opts)
 }
 
 // Create adds a device with a given id and the parent.
-func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
+func (d *Driver) Create(id, parent string, opts *context.CreateOpts) error {
 	var storageOpt map[string]string
 	if opts != nil {
 		storageOpt = opts.StorageOpt
@@ -190,7 +190,7 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get mounts a device with given id into the root filesystem
-func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
+func (d *Driver) Get(id string, options context.MountOpts) (string, error) {
 	d.locker.Lock(id)
 	defer d.locker.Unlock(id)
 	mp := path.Join(d.home, "mnt", id)

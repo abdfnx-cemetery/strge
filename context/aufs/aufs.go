@@ -23,7 +23,7 @@ import (
 	"github.com/gepis/strge/pkg/locker"
 	mountpk "github.com/gepis/strge/pkg/mount"
 	"github.com/gepis/strge/pkg/parsers"
-	"github.com/gepis/strge/pkg/system"
+	"github.com/gepis/strge/pkg/constants"
 	"github.com/opencontainers/runc/libcontainer/userns"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -166,7 +166,7 @@ func Init(home string, options context.Options) (context.Driver, error) {
 
 			if strings.HasSuffix(entry.Name(), "-removing") {
 				logger.WithField("dir", entry.Name()).Debug("Cleaning up stale layer dir")
-				if err := system.EnsureRemoveAll(filepath.Join(p, entry.Name())); err != nil {
+				if err := constants.EnsureRemoveAll(filepath.Join(p, entry.Name())); err != nil {
 					logger.WithField("dir", entry.Name()).WithError(err).Error("Error removing stale layer dir")
 				}
 			}
@@ -253,7 +253,7 @@ func (a *Driver) CreateFromTemplate(id, template string, templateIDMappings *idt
 }
 
 // CreateReadWrite creates a layer that is writable for use as a container
-// file system.
+// file constants.
 func (a *Driver) CreateReadWrite(id, parent string, opts *context.CreateOpts) error {
 	return a.Create(id, parent, opts)
 }
@@ -310,7 +310,7 @@ func (a *Driver) createDirsFor(id, parent string) error {
 		rootPair := idtools.NewIDMappingsFromMaps(a.uidMaps, a.gidMaps).RootPair()
 		rootPerms := defaultPerms
 		if parent != "" {
-			st, err := system.Stat(path.Join(a.rootPath(), p, parent))
+			st, err := constants.Stat(path.Join(a.rootPath(), p, parent))
 			if err != nil {
 				return err
 			}
@@ -412,7 +412,7 @@ func atomicRemove(source string) error {
 		return errors.Wrapf(err, "error preparing atomic delete")
 	}
 
-	return system.EnsureRemoveAll(target)
+	return constants.EnsureRemoveAll(target)
 }
 
 // Get returns the rootfs path for the id.

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/storage/context"
+	"github.com/gepis/strge/context"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"

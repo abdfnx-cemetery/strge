@@ -28,7 +28,7 @@ import (
 	"github.com/gepis/strge/pkg/locker"
 	"github.com/gepis/strge/pkg/mount"
 	"github.com/gepis/strge/pkg/parsers"
-	"github.com/gepis/strge/pkg/system"
+	"github.com/gepis/strge/pkg/constants"
 	"github.com/gepis/strge/pkg/unshare"
 	units "github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
@@ -248,7 +248,7 @@ func (d *Driver) getSupportsVolatile() (bool, error) {
 	return supportsVolatile, nil
 }
 
-// Init returns the a native diff driver for overlay filesystem.
+// Init returns the a native diff driver for overlay.
 // If overlay filesystem is not supported on the host, a wrapped context.ErrNotSupported is returned as error.
 // If an overlay filesystem is not supported over an existing filesystem then a wrapped context.ErrIncompatibleFS is returned.
 func Init(home string, options context.Options) (context.Driver, error) {
@@ -600,7 +600,7 @@ func supportsOverlay(home string, homeMagic context.FsMagic, rootUID, rootGID in
 	}
 	if err == nil {
 		// Check if reading the directory's contents populates the d_type field, which is required
-		// for proper operation of the overlay filesystem.
+		// for proper operation of the overlay.
 		supportsDType, err = fsutils.SupportsDType(layerDir)
 		if err != nil {
 			return false, err
@@ -795,7 +795,7 @@ func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idt
 }
 
 // CreateReadWrite creates a layer that is writable for use as a container
-// file system.
+// file constants.
 func (d *Driver) CreateReadWrite(id, parent string, opts *context.CreateOpts) error {
 	if opts != nil && len(opts.StorageOpt) != 0 && !projectQuotaSupported {
 		return fmt.Errorf("--storage-opt is supported only for overlay over xfs with 'pquota' mount option")
@@ -862,7 +862,7 @@ func (d *Driver) create(id, parent string, opts *context.CreateOpts) (retErr err
 		return err
 	}
 	if parent != "" {
-		st, err := system.Stat(d.dir(parent))
+		st, err := constants.Stat(d.dir(parent))
 		if err != nil {
 			return err
 		}
@@ -906,7 +906,7 @@ func (d *Driver) create(id, parent string, opts *context.CreateOpts) (retErr err
 		perms = *d.options.forceMask
 	}
 	if parent != "" {
-		st, err := system.Stat(filepath.Join(d.dir(parent), "diff"))
+		st, err := constants.Stat(filepath.Join(d.dir(parent), "diff"))
 		if err != nil {
 			return err
 		}
@@ -1108,7 +1108,7 @@ func (d *Driver) Remove(id string) error {
 
 	d.releaseAdditionalLayerByID(id)
 
-	if err := system.EnsureRemoveAll(dir); err != nil && !os.IsNotExist(err) {
+	if err := constants.EnsureRemoveAll(dir); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	return nil
