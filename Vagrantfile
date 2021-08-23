@@ -1,12 +1,15 @@
 Vagrant.configure("2") do |config|
   config.vm.define "fedora" do |g|
-    c.vm.box = "fedora/28-cloud-base"
-    c.vm.synced_folder ".", "/scripts/vagrant", type: "rsync",
+    g.vm.box = "fedora/28-cloud-base"
+    g.vm.synced_folder ".", "/vagrant", type: "rsync",
       rsync__exclude: "bundles", rsync__args: ["-vadz", "--delete"]
-    c.vm.provision "shell", inline: <<-SHELL
+    g.vm.provision "shell", inline: <<-SHELL
       sudo /vagrant/vagrant/provision.sh
     SHELL
   end
   config.vm.define "debian" do |g|
+    g.vm.box = "debian/jessie64"
+    g.vm.synced_folder ".", "/vagrant", type: "rsync",
+      rsync__exclude: "bundles", rsync__args: ["-vadz", "--delete"]
   end
 end
