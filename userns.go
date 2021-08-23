@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	drivers "github.com/gepis/strge/drivers"
+	context "github.com/gepis/strge/context"
 	"github.com/gepis/strge/pkg/idtools"
 	"github.com/gepis/strge/pkg/unshare"
 	"github.com/gepis/strge/types"
@@ -189,7 +189,7 @@ outer:
 	}
 	defer rlstore.Delete(clayer.ID)
 
-	mountOptions := drivers.MountOpts{
+	mountOptions := context.MountOpts{
 		MountLabel: "",
 		UidMaps:    nil,
 		GidMaps:    nil,
