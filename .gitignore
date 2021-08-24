@@ -16,3 +16,6 @@
 
 # secret script
 ci.sh
+
+# gepis-strge binary file
+/gepis-strge

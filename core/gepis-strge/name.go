@@ -112,7 +112,7 @@ func init() {
 		minArgs:     1,
 		action:      addNames,
 		addFlags: func(flags *mflag.FlagSet, cmd *command) {
-			flags.Var(opt.NewListoptRef(&paramNames, nil), []string{"-name", "n"}, "New name")
+			flags.Var(opt.NewListOptRef(&paramNames, nil), []string{"-name", "n"}, "New name")
 			flags.BoolVar(&jsonOutput, []string{"-json", "j"}, jsonOutput, "Prefer JSON output")
 		},
 	})
@@ -123,7 +123,7 @@ func init() {
 		minArgs:     1,
 		action:      setNames,
 		addFlags: func(flags *mflag.FlagSet, cmd *command) {
-			flags.Var(opt.NewListoptRef(&paramNames, nil), []string{"-name", "n"}, "New name")
+			flags.Var(opt.NewListOptRef(&paramNames, nil), []string{"-name", "n"}, "New name")
 			flags.BoolVar(&jsonOutput, []string{"-json", "j"}, jsonOutput, "Prefer JSON output")
 		},
 	})

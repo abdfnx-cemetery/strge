@@ -1,7 +1,40 @@
-// +build linux,!exclude_disk_quota,cgo
-
 package quota
 
+/*
+#include <stdlib.h>
+#include <dirent.h>
+#include <linux/fs.h>
+#include <linux/quota.h>
+#include <linux/dqblk_xfs.h>
+#ifndef FS_XFLAG_PROJINHERIT
+struct fsxattr {
+	__u32		fsx_xflags;
+	__u32		fsx_extsize;
+	__u32		fsx_nextents;
+	__u32		fsx_projid;
+	unsigned char	fsx_pad[12];
+};
+#define FS_XFLAG_PROJINHERIT	0x00000200
+#endif
+#ifndef FS_IOC_FSGETXATTR
+#define FS_IOC_FSGETXATTR		_IOR ('X', 31, struct fsxattr)
+#endif
+#ifndef FS_IOC_FSSETXATTR
+#define FS_IOC_FSSETXATTR		_IOW ('X', 32, struct fsxattr)
+#endif
+#ifndef PRJQUOTA
+#define PRJQUOTA	2
+#endif
+#ifndef FS_PROJ_QUOTA
+#define FS_PROJ_QUOTA	2
+#endif
+#ifndef Q_XSETPQLIM
+#define Q_XSETPQLIM QCMD(Q_XSETQLIM, PRJQUOTA)
+#endif
+#ifndef Q_XGETPQUOTA
+#define Q_XGETPQUOTA QCMD(Q_XGETQUOTA, PRJQUOTA)
+#endif
+*/
 import "C"
 import (
 	"fmt"
@@ -52,14 +85,35 @@ func generateUniqueProjectID(path string) (uint32, error) {
 	return uint32(projectID), nil
 }
 
+// NewControl - initialize project quota support.
+// Test to make sure that quota can be set on a test dir and find
+// the first project id to be used for the next container create.
+//
+// Returns nil (and error) if project quota is not supported.
+//
+// First get the project id of the basePath directory.
+// This test will fail if the backing fs is not xfs.
+//
 // xfs_quota tool can be used to assign a project id to the driver home directory, e.g.:
-//    echo 100000:/var/lib/gepis/strge/overlay >> /etc/projects
-//    echo 200000:/var/lib/gepis/strge/volumes >> /etc/projects
+//    echo 100000:/var/lib/containers/storage/overlay >> /etc/projects
+//    echo 200000:/var/lib/containers/storage/volumes >> /etc/projects
 //    echo storage:100000 >> /etc/projid
 //    echo volumes:200000 >> /etc/projid
 //    xfs_quota -x -c 'project -s storage volumes' /<xfs mount point>
 //
+// In the example above, the storage directory project id will be used as a
+// "start offset" and all containers will be assigned larger project ids
+// (e.g. >= 100000). Then the volumes directory project id will be used as a
+// "start offset" and all volumes will be assigned larger project ids
+// (e.g. >= 200000).
+// This is a way to prevent xfs_quota management from conflicting with
+// containers/storage.
 
+//
+// Then try to create a test directory with the next project id and set a quota
+// on it. If that works, continue to scan existing containers to map allocated
+// project ids.
+//
 func NewControl(basePath string) (*Control, error) {
 	//
 	// Get project id of parent dir as minimal id to be used by driver

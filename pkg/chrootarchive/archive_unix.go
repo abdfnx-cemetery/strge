@@ -68,8 +68,7 @@ func invokeUnpack(decompressedArchive io.Reader, dest string, options *archive.T
 	// when the full image list is passed (e.g. when this is used by
 	// `docker load`). We will marshall the options via a pipe to the
 	// child
-	_, w, err := os.Pipe()
-
+	r, w, err := os.Pipe()
 	if err != nil {
 		return fmt.Errorf("Untar pipe failure: %v", err)
 	}

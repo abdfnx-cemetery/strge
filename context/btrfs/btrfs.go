@@ -2,6 +2,15 @@
 
 package btrfs
 
+/*
+#include <stdlib.h>
+#include <dirent.h>
+#include <btrfs/ioctl.h>
+#include <btrfs/ctree.h>
+static void set_name_btrfs_ioctl_vol_args_v2(struct btrfs_ioctl_vol_args_v2* btrfs_struct, const char* value) {
+    snprintf(btrfs_struct->name, BTRFS_SUBVOL_NAME_MAX, "%s", value);
+}
+*/
 import "C"
 
 import (
@@ -459,7 +468,7 @@ func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idt
 }
 
 // CreateReadWrite creates a layer that is writable for use as a container
-// file system.
+// file constants.
 func (d *Driver) CreateReadWrite(id, parent string, opts *context.CreateOpts) error {
 	return d.Create(id, parent, opts)
 }
@@ -659,7 +668,7 @@ func (d *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
 	return directory.Usage(d.subvolumesDirID(id))
 }
 
-// Exists checks if the id exists in the filesystem.
+// Exists checks if the id exists in the fileconstants.
 func (d *Driver) Exists(id string) bool {
 	dir := d.subvolumesDirID(id)
 	_, err := os.Stat(dir)

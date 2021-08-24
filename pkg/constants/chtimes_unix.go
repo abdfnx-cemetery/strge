@@ -1,6 +1,6 @@
 // +build !windows
 
-package system
+package constants
 
 import (
 	"time"
