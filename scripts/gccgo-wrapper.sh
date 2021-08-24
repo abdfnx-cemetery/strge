@@ -4,8 +4,8 @@
 #
 addflags=
 for arg in "$@" ; do
-	if test -d "$arg"/github.com/containers/storage/vendor ; then
-		addflags="$addflags -I $arg/github.com/containers/storage/vendor"
+	if test -d "$arg"/github.com/gepis/strge/vendor ; then
+		addflags="$addflags -I $arg/github.com/gepis/strge/vendor"
 	fi
 done
 exec gccgo $addflags "$@"
