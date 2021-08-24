@@ -252,7 +252,7 @@ func init() {
 		action:      createLayer,
 		addFlags: func(flags *mflag.FlagSet, cmd *command) {
 			flags.StringVar(&paramMountLabel, []string{"-label", "l"}, "", "Mount Label")
-			flags.Var(opt.NewListoptRef(&paramNames, nil), []string{"-name", "n"}, "Layer name")
+			flags.Var(opt.NewListOptRef(&paramNames, nil), []string{"-name", "n"}, "Layer name")
 			flags.StringVar(&paramID, []string{"-id", "i"}, "", "Layer ID")
 			flags.BoolVar(&paramCreateRO, []string{"-readonly", "r"}, false, "Mark as read-only")
 			flags.BoolVar(&jsonOutput, []string{"-json", "j"}, jsonOutput, "Prefer JSON output")
@@ -272,7 +272,7 @@ func init() {
 		action:      importLayer,
 		addFlags: func(flags *mflag.FlagSet, cmd *command) {
 			flags.StringVar(&paramMountLabel, []string{"-label", "l"}, "", "Mount Label")
-			flags.Var(opt.NewListoptRef(&paramNames, nil), []string{"-name", "n"}, "Layer name")
+			flags.Var(opt.NewListOptRef(&paramNames, nil), []string{"-name", "n"}, "Layer name")
 			flags.StringVar(&paramID, []string{"-id", "i"}, "", "Layer ID")
 			flags.BoolVar(&paramCreateRO, []string{"-readonly", "r"}, false, "Mark as read-only")
 			flags.BoolVar(&jsonOutput, []string{"-json", "j"}, jsonOutput, "Prefer JSON output")
@@ -293,7 +293,7 @@ func init() {
 		maxArgs:     1,
 		action:      createImage,
 		addFlags: func(flags *mflag.FlagSet, cmd *command) {
-			flags.Var(opt.NewListoptRef(&paramNames, nil), []string{"-name", "n"}, "Image name")
+			flags.Var(opt.NewListOptRef(&paramNames, nil), []string{"-name", "n"}, "Image name")
 			flags.StringVar(&paramID, []string{"-id", "i"}, "", "Image ID")
 			flags.StringVar(&paramDigest, []string{"-digest", "d"}, "", "Image Digest")
 			flags.StringVar(&paramMetadata, []string{"-metadata", "m"}, "", "Metadata")
@@ -309,7 +309,7 @@ func init() {
 		maxArgs:     1,
 		action:      createContainer,
 		addFlags: func(flags *mflag.FlagSet, cmd *command) {
-			flags.Var(opt.NewListoptRef(&paramNames, nil), []string{"-name", "n"}, "Container name")
+			flags.Var(opt.NewListOptRef(&paramNames, nil), []string{"-name", "n"}, "Container name")
 			flags.BoolVar(&paramVolatile, []string{"-volatile"}, false, "Mark as volatile")
 			flags.StringVar(&paramID, []string{"-id", "i"}, "", "Container ID")
 			flags.StringVar(&paramMetadata, []string{"-metadata", "m"}, "", "Metadata")

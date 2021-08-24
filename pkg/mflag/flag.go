@@ -1,7 +1,3 @@
-// Copyright 2014-2016 The Docker & Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package mflag
 
 import (
@@ -16,7 +12,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/gepis/strge/pkg/home"
+	homepkg "github.com/gepis/strge/pkg/home"
 )
 
 // ErrHelp is the error returned if the flag -help is invoked but no such flag is defined.
@@ -261,7 +257,6 @@ func (p flagSlice) Less(i, j int) bool {
 	if lpi != lpj {
 		return lpi < lpj
 	}
-
 	return pi < pj
 }
 func (p flagSlice) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
@@ -288,7 +283,6 @@ func sortFlags(flags map[string]*Flag) []*Flag {
 				break
 			}
 		}
-
 		if !found {
 			list = append(list, fName)
 		}
@@ -298,7 +292,6 @@ func sortFlags(flags map[string]*Flag) []*Flag {
 	for i, name := range list {
 		result[i] = flags[nameMap[name]]
 	}
-
 	return result
 }
 
@@ -312,7 +305,6 @@ func (fs *FlagSet) Out() io.Writer {
 	if fs.output == nil {
 		return os.Stderr
 	}
-
 	return fs.output
 }
 
@@ -410,21 +402,20 @@ func (fs *FlagSet) CheckArgs() (message string) {
 		}
 
 		switch req.Type {
-			case Exact:
-				if fs.NArg() != req.N {
-					return str("")
-				}
-			case Max:
-				if fs.NArg() > req.N {
-					return str("a maximum of ")
-				}
-			case Min:
-				if fs.NArg() < req.N {
-					return str("a minimum of ")
-				}
+		case Exact:
+			if fs.NArg() != req.N {
+				return str("")
+			}
+		case Max:
+			if fs.NArg() > req.N {
+				return str("a maximum of ")
+			}
+		case Min:
+			if fs.NArg() < req.N {
+				return str("a minimum of ")
+			}
 		}
 	}
-
 	return ""
 }
 
@@ -434,15 +425,12 @@ func (fs *FlagSet) Set(name, value string) error {
 	if !ok {
 		return fmt.Errorf("no such flag -%v", name)
 	}
-
 	if err := flag.Value.Set(value); err != nil {
 		return err
 	}
-
 	if fs.actual == nil {
 		fs.actual = make(map[string]*Flag)
 	}
-
 	fs.actual[name] = flag
 	return nil
 }
@@ -456,14 +444,13 @@ func Set(name, value string) error {
 // value for a flag. It is not accurate but in practice works OK.
 func isZeroValue(value string) bool {
 	switch value {
-		case "false":
-			return true
-		case "":
-			return true
-		case "0":
-			return true
+	case "false":
+		return true
+	case "":
+		return true
+	case "0":
+		return true
 	}
-
 	return false
 }
 
@@ -471,7 +458,7 @@ func isZeroValue(value string) bool {
 // otherwise, the default values of all defined flags in the set.
 func (fs *FlagSet) PrintDefaults() {
 	writer := tabwriter.NewWriter(fs.Out(), 20, 1, 3, ' ', 0)
-	home := home.Get()
+	home := homepkg.Get()
 
 	// Don't substitute when HOME is /
 	if runtime.GOOS != "windows" && home == "/" {
@@ -490,12 +477,11 @@ func (fs *FlagSet) PrintDefaults() {
 				names = append(names, name)
 			}
 		}
-
 		if len(names) > 0 && len(flag.Usage) > 0 {
 			val := flag.DefValue
 
 			if home != "" && strings.HasPrefix(val, home) {
-				val = home.GetShortcutString() + val[len(home):]
+				val = homepkg.GetShortcutString() + val[len(home):]
 			}
 
 			if isZeroValue(val) {
@@ -510,7 +496,6 @@ func (fs *FlagSet) PrintDefaults() {
 			}
 		}
 	})
-
 	writer.Flush()
 }
 
@@ -526,7 +511,6 @@ func defaultUsage(fs *FlagSet) {
 	} else {
 		fmt.Fprintf(fs.Out(), "Usage of %s:\n", fs.name)
 	}
-
 	fs.PrintDefaults()
 }
 
@@ -561,7 +545,6 @@ func (fs *FlagSet) FlagCountUndeprecated() int {
 			}
 		}
 	}
-
 	return count
 }
 
@@ -854,11 +837,9 @@ func (fs *FlagSet) Var(value Value, names []string, usage string) {
 			fmt.Fprintln(fs.Out(), msg)
 			panic(msg) // Happens only if flags are declared with identical names
 		}
-
 		if fs.formal == nil {
 			fs.formal = make(map[string]*Flag)
 		}
-
 		fs.formal[name] = flag
 	}
 }
@@ -883,7 +864,6 @@ func (fs *FlagSet) failf(format string, a ...interface{}) error {
 	} else {
 		fmt.Fprintf(fs.Out(), "See '%s %s --help'.\n", os.Args[0], fs.name)
 	}
-
 	return err
 }
 
@@ -903,7 +883,6 @@ func trimQuotes(str string) string {
 	if len(str) == 0 {
 		return str
 	}
-
 	type quote struct {
 		start, end byte
 	}
@@ -939,17 +918,14 @@ func (fs *FlagSet) parseOne() (bool, string, error) {
 	if len(fs.args) == 0 {
 		return false, "", nil
 	}
-
 	s := fs.args[0]
 	if len(s) == 0 || s[0] != '-' || len(s) == 1 {
 		return false, "", nil
 	}
-
 	if s[1] == '-' && len(s) == 2 { // "--" terminates the flags
 		fs.args = fs.args[1:]
 		return false, "", nil
 	}
-
 	name := s[1:]
 	if len(name) == 0 || name[0] == '=' {
 		return false, "", fs.failf("bad flag syntax: %s", s)
@@ -967,20 +943,16 @@ func (fs *FlagSet) parseOne() (bool, string, error) {
 
 	m := fs.formal
 	flag, alreadythere := m[name] // BUG
-
 	if !alreadythere {
 		if name == "-help" || name == "help" || name == "h" { // special case for nice help message.
 			fs.usage()
 			return false, "", ErrHelp
 		}
-
 		if len(name) > 0 && name[0] == '-' {
 			return false, "", fs.failf("flag provided but not defined: -%s", name)
 		}
-
 		return false, name, ErrRetry
 	}
-
 	if fv, ok := flag.Value.(boolFlag); ok && fv.IsBoolFlag() { // special case: doesn't need an arg
 		if hasValue {
 			if err := fv.Set(value); err != nil {
@@ -996,20 +968,16 @@ func (fs *FlagSet) parseOne() (bool, string, error) {
 			hasValue = true
 			value, fs.args = fs.args[0], fs.args[1:]
 		}
-
 		if !hasValue {
 			return false, "", fs.failf("flag needs an argument: -%s", name)
 		}
-
 		if err := flag.Value.Set(value); err != nil {
 			return false, "", fs.failf("invalid value %q for flag -%s: %v", value, name, err)
 		}
 	}
-
 	if fs.actual == nil {
 		fs.actual = make(map[string]*Flag)
 	}
-
 	fs.actual[name] = flag
 	for i, n := range flag.Names {
 		if n == fmt.Sprintf("#%s", name) {
@@ -1027,7 +995,6 @@ func (fs *FlagSet) parseOne() (bool, string, error) {
 			}
 		}
 	}
-
 	return true, "", nil
 }
 
@@ -1043,11 +1010,9 @@ func (fs *FlagSet) Parse(arguments []string) error {
 		if seen {
 			continue
 		}
-
 		if err == nil {
 			break
 		}
-
 		if err == ErrRetry {
 			if len(name) > 1 {
 				err = nil
@@ -1057,13 +1022,11 @@ func (fs *FlagSet) Parse(arguments []string) error {
 					if seen2 {
 						continue
 					}
-
 					if err2 != nil {
 						err = fs.failf("flag provided but not defined: -%s", name)
 						break
 					}
 				}
-
 				if err == nil {
 					continue
 				}
@@ -1071,17 +1034,15 @@ func (fs *FlagSet) Parse(arguments []string) error {
 				err = fs.failf("flag provided but not defined: -%s", name)
 			}
 		}
-
 		switch fs.errorHandling {
-			case ContinueOnError:
-				return err
-			case ExitOnError:
-				os.Exit(125)
-			case PanicOnError:
-				panic(err)
+		case ContinueOnError:
+			return err
+		case ExitOnError:
+			os.Exit(125)
+		case PanicOnError:
+			panic(err)
 		}
 	}
-
 	return nil
 }
 
@@ -1095,24 +1056,20 @@ func (fs *FlagSet) ParseFlags(args []string, withHelp bool) error {
 	if withHelp {
 		help = fs.Bool([]string{"#help", "-help"}, false, "Print usage")
 	}
-
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-
 	if help != nil && *help {
 		fs.SetOutput(os.Stdout)
 		fs.Usage()
 		os.Exit(0)
 	}
-
 	if str := fs.CheckArgs(); str != "" {
 		fs.SetOutput(os.Stderr)
 		fs.ReportError(str, withHelp)
 		fs.ShortUsage()
 		os.Exit(1)
 	}
-
 	return nil
 }
 
@@ -1126,7 +1083,6 @@ func (fs *FlagSet) ReportError(str string, withHelp bool) {
 			str += ".\nSee '" + os.Args[0] + " " + fs.Name() + " --help'"
 		}
 	}
-
 	fmt.Fprintf(fs.Out(), "%s: %s.\n", os.Args[0], str)
 }
 
@@ -1159,7 +1115,6 @@ func NewFlagSet(name string, errorHandling ErrorHandling) *FlagSet {
 		name:          name,
 		errorHandling: errorHandling,
 	}
-
 	return f
 }
 
@@ -1185,7 +1140,6 @@ func (v mergeVal) IsBoolFlag() bool {
 	if b, ok := v.Value.(boolFlag); ok {
 		return b.IsBoolFlag()
 	}
-
 	return false
 }
 
@@ -1196,11 +1150,9 @@ func (v mergeVal) Name() string {
 	type namedValue interface {
 		Name() string
 	}
-
 	if nVal, ok := v.Value.(namedValue); ok {
 		return nVal.Name()
 	}
-
 	return v.key
 }
 
@@ -1212,7 +1164,6 @@ func Merge(dest *FlagSet, flagsets ...*FlagSet) error {
 		if fset.formal == nil {
 			continue
 		}
-
 		for k, f := range fset.formal {
 			if _, ok := dest.formal[k]; ok {
 				var err error
@@ -1224,25 +1175,22 @@ func Merge(dest *FlagSet, flagsets ...*FlagSet) error {
 				fmt.Fprintln(fset.Out(), err.Error())
 				// Happens only if flags are declared with identical names
 				switch dest.errorHandling {
-					case ContinueOnError:
-						return err
-					case ExitOnError:
-						os.Exit(2)
-					case PanicOnError:
-						panic(err)
+				case ContinueOnError:
+					return err
+				case ExitOnError:
+					os.Exit(2)
+				case PanicOnError:
+					panic(err)
 				}
 			}
-
 			newF := *f
 			newF.Value = mergeVal{f.Value, k, fset}
 			if dest.formal == nil {
 				dest.formal = make(map[string]*Flag)
 			}
-
 			dest.formal[k] = &newF
 		}
 	}
-
 	return nil
 }
 

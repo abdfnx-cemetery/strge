@@ -38,22 +38,22 @@ default all: local-binary local-validate local-cross local-gccgo
 clean: ## remove all built files
 	$(RM) -f gepis-strge gepis-strge.*
 
-sources := $(wildcard *.go core/gepis-strge/*.go drivers/*.go drivers/*/*.go pkg/*/*.go pkg/*/*/*.go)
+sources := $(wildcard *.go core/gepis-strge/*.go context/*.go context/*/*.go pkg/*/*.go pkg/*/*/*.go)
 gepis-strge: $(sources) ## build using gc on the host
-	$(GO) build $(MOD_VENDOR) -compiler gc $(BUILDFLAGS) ./core
+	$(GO) build $(MOD_VENDOR) -compiler gc $(BUILDFLAGS) ./core/gepis-strge
 
 binary local-binary: gepis-strge
 
 local-gccgo: ## build using gccgo on the host
-	GCCGO=$(PWD)/scripts/gccgo-wrapper.sh $(GO) build $(MOD_VENDOR) -compiler gccgo $(BUILDFLAGS) -o gepis-strge.gccgo ./core
+	GCCGO=$(PWD)/scripts/gccgo-wrapper.sh $(GO) build $(MOD_VENDOR) -compiler gccgo $(BUILDFLAGS) -o gepis-strge.gccgo ./core/gepis-strge
 
 local-cross: ## cross build the binaries for arm, darwin, and\nfreebsd
 	@for target in linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64 linux/ppc64le darwin/amd64 windows/amd64 ; do \
 		os=`echo $${target} | cut -f1 -d/` ; \
 		arch=`echo $${target} | cut -f2 -d/` ; \
 		suffix=$${os}.$${arch} ; \
-		echo env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build $(MOD_VENDOR) -compiler gc -tags \"$(NATIVETAGS) $(TAGS)\" $(FLAGS) -o gepis-strge.$${suffix} ./core ; \
-		env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build $(MOD_VENDOR) -compiler gc -tags "$(NATIVETAGS) $(TAGS)" $(FLAGS) -o gepis-strge.$${suffix} ./core || exit 1 ; \
+		echo env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build $(MOD_VENDOR) -compiler gc -tags \"$(NATIVETAGS) $(TAGS)\" $(FLAGS) -o gepis-strge.$${suffix} ./core/gepis-strge ; \
+		env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build $(MOD_VENDOR) -compiler gc -tags "$(NATIVETAGS) $(TAGS)" $(FLAGS) -o gepis-strge.$${suffix} ./core/gepis-strge || exit 1 ; \
 	done
 
 cross: ## cross build the binaries for arm, darwin, and\nfreebsd using VMs
