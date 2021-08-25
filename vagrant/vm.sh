@@ -2,6 +2,7 @@
 
 set -e
 export PKG="github.com/gepis/strge"
+MACHINE="debian"
 
 if test -z "$VAGRANT_PROVIDER" ; then
 	if lsmod | grep -q '^vboxdrv ' ; then
@@ -22,9 +23,7 @@ if ${IN_VAGRANT_MACHINE:-false} ; then
 	"$@"
 else
 	vagrant up --provider ${VAGRANT_PROVIDER}
-	for machine in "fedora debian" ; do
-		vagrant reload ${machine}
-		vagrant ssh ${machine} -c "cd /go/src/${PKG}; IN_VAGRANT_MACHINE=true sudo -E $0 $*"
-		vagrant ssh ${machine} -c "sudo poweroff &"
-	done
+	vagrant reload ${MACHINE}
+	vagrant ssh ${MACHINE} -c "cd /go/src/${PKG}; IN_VAGRANT_MACHINE=true sudo -E $0 $*"
+	vagrant ssh ${MACHINE} -c "sudo poweroff &"
 fi
