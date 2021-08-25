@@ -19,3 +19,7 @@ ci.sh
 
 # gepis-strge binary file
 /gepis-strge
+
+# hashicorp
+.vagrant
+.terraform

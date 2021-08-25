@@ -17,13 +17,6 @@ case "${ID_LIKE:-${ID:-unknown}}" in
     apt-get -q -y install golang gccgo
     apt-get -q -y install bats
     ;;
-  fedora)
-    dnf -y clean all
-    dnf -y install make git gcc btrfs-progs-devel device-mapper-devel
-    dnf -y install golang gcc-go
-    dnf -y install bats
-    alternatives --set go /usr/lib/golang/bin/go
-    ;;
   unknown)
     echo Unknown box OS, unsure of how to install required packages.
     exit 1
